@@ -1,0 +1,6 @@
+@API_REST_CURSOSACADEMICOS_HostAddress = http://localhost:5251
+
+GET {{API_REST_CURSOSACADEMICOS_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

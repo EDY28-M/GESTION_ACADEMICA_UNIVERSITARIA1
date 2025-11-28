@@ -1,0 +1,13 @@
+﻿# .NET
+bin/
+obj/
+*.user
+
+# Visual Studio
+.vs/
+
+# Terraform - solo el provider binario
+terraform/.terraform/providers/
+
+# Otros
+*.exe

@@ -1,0 +1,61 @@
+# ========================================
+# .dockerignore - Archivos a excluir del contexto de Docker
+# ========================================
+
+# Directorios de compilación
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# Directorios de Visual Studio
+**/.vs/
+**/.vscode/
+**/TestResults/
+**/*.user
+**/*.suo
+**/*.cache
+**/.dtbcache.v2
+**/.futdcache.v2
+
+# Archivos de NuGet
+**/*.nupkg
+**/*.snupkg
+**/packages/
+**/.nuget/
+
+# Archivos de logs
+**/*.log
+**/logs/
+**/*.txt
+
+# Archivos temporales
+**/tmp/
+**/temp/
+**/.tmp/
+
+# Archivos de SQL (no necesarios en la imagen)
+**/*.sql
+
+# Archivos de configuración local
+**/appsettings.Development.json
+**/launchSettings.json
+
+# Archivos de Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Documentación
+**/README.md
+**/GRAFICAS_INFO.md
+**/QUICK_START.md
+**/*.http
+
+# Node modules (si hay algún frontend mezclado)
+**/node_modules/
+
+# Archivos de Docker
+**/Dockerfile*
+**/docker-compose*
+**/.dockerignore

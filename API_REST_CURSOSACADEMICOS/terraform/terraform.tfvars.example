@@ -1,0 +1,17 @@
+# ========================================
+# TERRAFORM.TFVARS.EXAMPLE
+# ========================================
+# INSTRUCCIONES:
+# 1. Copia este archivo y renómbralo a: terraform.tfvars
+# 2. Reemplaza "TU-PROJECT-ID" con tu Project ID real de Google Cloud
+# 3. El Project ID lo encuentras en: https://console.cloud.google.com/
+#    (aparece en la parte superior de la consola)
+# ========================================
+
+project_id      = "TU-PROJECT-ID"    # <-- REEMPLAZA ESTO
+region          = "us-central1"
+zone            = "us-central1-a"
+cluster_name    = "gke-cursos-academicos"
+repository_name = "api-cursos-repo"
+machine_type    = "e2-medium"
+node_count      = 1

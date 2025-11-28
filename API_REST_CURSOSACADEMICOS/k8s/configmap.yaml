@@ -1,0 +1,22 @@
+# ========================================
+# CONFIGMAP.YAML - Configuración No Sensible (Opcional)
+# ========================================
+# Usa este archivo para configuraciones que no son secretas
+# ========================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  labels:
+    app: api-cursos-academicos
+data:
+  # Configuración de la aplicación
+  ASPNETCORE_ENVIRONMENT: "Production"
+  
+  # URLs permitidas para CORS (separa con coma si hay varias)
+  ALLOWED_ORIGINS: "*"
+  
+  # Configuración de logging
+  Logging__LogLevel__Default: "Information"
+  Logging__LogLevel__Microsoft.AspNetCore: "Warning"
