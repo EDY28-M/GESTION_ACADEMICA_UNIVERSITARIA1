@@ -1,0 +1,121 @@
+### API REST para Gestión Académica
+### Docentes Endpoints
+
+# Obtener todos los docentes
+GET http://localhost:5251/api/docentes
+Accept: application/json
+
+###
+
+# Obtener un docente por ID
+GET http://localhost:5251/api/docentes/1
+Accept: application/json
+
+###
+
+# Crear un nuevo docente
+POST http://localhost:5251/api/docentes
+Content-Type: application/json
+
+{
+  "apellidos": "García",
+  "nombres": "María Elena",
+  "profesion": "Profesora de Química",
+  "fechaNacimiento": "1982-03-15",
+  "correo": "maria.garcia@instituto.edu"
+}
+
+###
+
+# Actualizar un docente
+PUT http://localhost:5251/api/docentes/1
+Content-Type: application/json
+
+{
+  "apellidos": "Pérez García",
+  "nombres": "Juan Carlos",
+  "profesion": "Profesor de Matemáticas Avanzadas",
+  "fechaNacimiento": "1980-05-12",
+  "correo": "juan.perez@instituto.edu"
+}
+
+###
+
+# Eliminar un docente
+DELETE http://localhost:5251/api/docentes/3
+Accept: application/json
+
+###
+
+### Cursos Endpoints
+
+# Obtener todos los cursos
+GET http://localhost:5251/api/cursos
+Accept: application/json
+
+###
+
+# Obtener un curso por ID
+GET http://localhost:5251/api/cursos/1
+Accept: application/json
+
+###
+
+# Obtener cursos por docente
+GET http://localhost:5251/api/cursos/PorDocente/1
+Accept: application/json
+
+###
+
+# Obtener cursos por ciclo
+GET http://localhost:5251/api/cursos/PorCiclo/1er Ciclo
+Accept: application/json
+
+###
+
+# Crear un nuevo curso
+POST http://localhost:5251/api/cursos
+Content-Type: application/json
+
+{
+  "nombreCurso": "Álgebra Lineal",
+  "creditos": 4,
+  "horasSemanal": 6,
+  "ciclo": "2do Ciclo",
+  "idDocente": 1
+}
+
+###
+
+# Crear un curso sin docente asignado
+POST http://localhost:5251/api/cursos
+Content-Type: application/json
+
+{
+  "nombreCurso": "Introducción a la Programación",
+  "creditos": 5,
+  "horasSemanal": 8,
+  "ciclo": "1er Ciclo"
+}
+
+###
+
+# Actualizar un curso
+PUT http://localhost:5251/api/cursos/1
+Content-Type: application/json
+
+{
+  "nombreCurso": "Cálculo Diferencial e Integral",
+  "creditos": 5,
+  "horasSemanal": 8,
+  "ciclo": "1er Ciclo",
+  "idDocente": 1
+}
+
+###
+
+# Eliminar un curso
+DELETE http://localhost:5251/api/cursos/3
+Accept: application/json
+
+###

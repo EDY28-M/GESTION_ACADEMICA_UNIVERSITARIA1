@@ -1,0 +1,62 @@
+# ========================================
+# DOCKER COMPOSE - GESTIÓN ACADÉMICA
+# Backend API + SQL Server
+# ========================================
+
+version: '3.8'
+
+services:
+  # ========================================
+  # SQL SERVER - Base de Datos
+  # ========================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver_gestionacademica
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MiPassword123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - gestion-network
+    restart: unless-stopped
+
+  # ========================================
+  # BACKEND API - ASP.NET Core
+  # ========================================
+  backend-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend_gestionacademica
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=GestionAcademica;User Id=sa;Password=MiPassword123!;TrustServerCertificate=True;MultipleActiveResultSets=true
+      - JwtSettings__SecretKey=GestionAcademica_SuperSecretKey_2025_MinLength32Characters!
+      - JwtSettings__Issuer=GestionAcademicaAPI
+      - JwtSettings__Audience=GestionAcademicaClients
+      - JwtSettings__ExpirationHours=24
+      - JwtSettings__RefreshTokenExpirationDays=7
+    ports:
+      - "5000:8080"
+    networks:
+      - gestion-network
+    restart: unless-stopped
+
+# ========================================
+# NETWORKS
+# ========================================
+networks:
+  gestion-network:
+    driver: bridge
+
+# ========================================
+# VOLUMES
+# ========================================
+volumes:
+  sqlserver_data:
+    driver: local

@@ -1,0 +1,28 @@
+# ========================================
+# .gitignore para el proyecto
+# ========================================
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Secretos
+k8s/secret.yaml
+
+# .NET
+bin/
+obj/
+*.user
+
+# Visual Studio
+.vs/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db

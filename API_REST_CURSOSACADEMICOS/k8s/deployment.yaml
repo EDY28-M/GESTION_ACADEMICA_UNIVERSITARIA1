@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-cursos-academicos
+  labels:
+    app: api-cursos-academicos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-cursos-academicos
+  template:
+    metadata:
+      labels:
+        app: api-cursos-academicos
+    spec:
+      containers:
+      - name: api-cursos-academicos
+        image: us-central1-docker.pkg.dev/flash-adapter-424617-u4/api-cursos-repo/api-cursos-academicos:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - secretRef:
+            name: api-secrets
+        - configMapRef:
+            name: api-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
