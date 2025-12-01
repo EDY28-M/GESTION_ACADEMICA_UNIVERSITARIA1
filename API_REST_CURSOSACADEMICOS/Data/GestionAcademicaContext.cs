@@ -21,6 +21,7 @@ namespace API_REST_CURSOSACADEMICOS.Data
         public DbSet<Asistencia> Asistencias { get; set; }
         public DbSet<TipoEvaluacion> TiposEvaluacion { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<Horario> Horarios { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -214,6 +215,27 @@ namespace API_REST_CURSOSACADEMICOS.Data
                 // Índices
                 entity.HasIndex(e => e.IdCurso);
                 entity.HasIndex(e => new { e.IdCurso, e.Orden });
+            });
+
+            // Configuración para Horario
+            modelBuilder.Entity<Horario>(entity =>
+            {
+                entity.ToTable("Horario");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdCurso).HasColumnName("idCurso");
+                entity.Property(e => e.DiaSemana).HasColumnName("dia_semana").IsRequired();
+                entity.Property(e => e.HoraInicio).HasColumnName("hora_inicio").IsRequired();
+                entity.Property(e => e.HoraFin).HasColumnName("hora_fin").IsRequired();
+                entity.Property(e => e.Aula).HasColumnName("aula").HasMaxLength(50);
+                entity.Property(e => e.Tipo).HasColumnName("tipo").HasMaxLength(20).IsRequired();
+
+                // Relación con Curso
+                entity.HasOne(d => d.Curso)
+                      .WithMany()
+                      .HasForeignKey(d => d.IdCurso)
+                      .HasConstraintName("FK_Horario_Curso")
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
