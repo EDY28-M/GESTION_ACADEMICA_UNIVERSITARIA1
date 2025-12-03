@@ -7,14 +7,14 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
     {
         public int Id { get; set; }
         public int IdCurso { get; set; }
-        public string NombreCurso { get; set; }
-        public string NombreDocente { get; set; }
+        public string NombreCurso { get; set; } = string.Empty;
+        public string NombreDocente { get; set; } = string.Empty;
         public int DiaSemana { get; set; }
-        public string DiaSemanaTexto { get; set; }
-        public string HoraInicio { get; set; } // Formato HH:mm
-        public string HoraFin { get; set; }    // Formato HH:mm
+        public string DiaSemanaTexto { get; set; } = string.Empty;
+        public string HoraInicio { get; set; } = string.Empty; // Formato HH:mm
+        public string HoraFin { get; set; } = string.Empty;    // Formato HH:mm
         public string? Aula { get; set; }
-        public string Tipo { get; set; }
+        public string Tipo { get; set; } = string.Empty;
     }
 
     public class CrearHorarioDto
@@ -27,22 +27,22 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public int DiaSemana { get; set; }
 
         [Required]
-        public string HoraInicio { get; set; } // Recibimos string "HH:mm" y lo convertimos
+        public string HoraInicio { get; set; } = string.Empty; // Recibimos string "HH:mm" y lo convertimos
 
         [Required]
-        public string HoraFin { get; set; }
+        public string HoraFin { get; set; } = string.Empty;
 
         public string? Aula { get; set; }
 
         [Required]
-        public string Tipo { get; set; }
+        public string Tipo { get; set; } = string.Empty;
     }
 
     public class HorarioConflictoDto
     {
         public bool HayConflicto { get; set; }
-        public string Mensaje { get; set; }
-        public string CursoConflicto { get; set; }
-        public string HorarioConflicto { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
+        public string CursoConflicto { get; set; } = string.Empty;
+        public string HorarioConflicto { get; set; } = string.Empty;
     }
 }

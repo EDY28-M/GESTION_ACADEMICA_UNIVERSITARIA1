@@ -1,8 +1,11 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
@@ -15,6 +18,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Configurar Entity Framework
 builder.Services.AddDbContext<GestionAcademicaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configurar Health Checks para Load Balancer
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<GestionAcademicaContext>("database")
+    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"));
 
 // Registrar servicios (Dependency Injection - SOLID)
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -157,12 +165,45 @@ app.MapControllers();
 app.MapHub<NotificationsHub>("/hub/notifications");
 
 // ========================================
-// HEALTH CHECK ENDPOINT - Requerido por Kubernetes
+// CONFIGURACIÓN PARA LOAD BALANCER
 // ========================================
-app.MapGet("/health", () => Results.Ok(new { 
-    status = "healthy", 
+// Configurar headers para proxy/load balancer
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+                      Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
+// Health checks para load balancer
+app.UseHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        var response = new
+        {
+            status = report.Status.ToString(),
+            instance = Environment.GetEnvironmentVariable("INSTANCE_NAME") ?? "Unknown",
+            timestamp = DateTime.UtcNow,
+            checks = report.Entries.Select(x => new { 
+                name = x.Key, 
+                status = x.Value.Status.ToString(),
+                duration = x.Value.Duration.TotalMilliseconds 
+            })
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+    }
+});
+
+// Endpoint simple para load balancer health check
+app.MapGet("/health/simple", () => Results.Ok("healthy"));
+
+// Información de la instancia para debugging
+app.MapGet("/info", () => Results.Ok(new { 
+    instance = Environment.GetEnvironmentVariable("INSTANCE_NAME") ?? "Unknown",
+    machineName = Environment.MachineName,
+    processId = Environment.ProcessId,
     timestamp = DateTime.UtcNow,
-    service = "API_REST_CURSOSACADEMICOS"
+    version = "1.0.0"
 }));
 
 app.Run();

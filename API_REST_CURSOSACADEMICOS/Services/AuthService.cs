@@ -71,7 +71,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 {
                     Token = token,
                     RefreshToken = refreshToken,
-                    Expiration = DateTime.UtcNow.AddHours(GetTokenExpirationHours()),
+                    Expiration = DateTime.UtcNow.AddMinutes(GetTokenExpirationMinutes()),
                     Usuario = MapToUsuarioDto(usuario)
                 };
             }
@@ -126,7 +126,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 {
                     Token = newToken,
                     RefreshToken = newRefreshToken,
-                    Expiration = DateTime.UtcNow.AddHours(GetTokenExpirationHours()),
+                    Expiration = DateTime.UtcNow.AddMinutes(GetTokenExpirationMinutes()),
                     Usuario = MapToUsuarioDto(usuario)
                 };
             }
@@ -165,11 +165,11 @@ namespace API_REST_CURSOSACADEMICOS.Services
             }
         }
 
-        public async Task<bool> ValidateTokenAsync(string token)
+        public Task<bool> ValidateTokenAsync(string token)
         {
             if (string.IsNullOrEmpty(token))
             {
-                return false;
+                return Task.FromResult(false);
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -189,11 +189,11 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
 
-                return true;
+                return Task.FromResult(true);
             }
             catch
             {
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -260,7 +260,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(GetTokenExpirationHours()),
+                expires: DateTime.UtcNow.AddMinutes(GetTokenExpirationMinutes()),
                 signingCredentials: credentials
             );
 
@@ -329,11 +329,11 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 ?? throw new InvalidOperationException("JWT SecretKey no configurada");
         }
 
-        private int GetTokenExpirationHours()
+        private int GetTokenExpirationMinutes()
         {
-            return int.TryParse(_configuration["JwtSettings:ExpirationHours"], out int hours) 
-                ? hours 
-                : 24;
+            return int.TryParse(_configuration["JwtSettings:ExpirationMinutes"], out int minutes) 
+                ? minutes 
+                : 30;
         }
 
         #endregion

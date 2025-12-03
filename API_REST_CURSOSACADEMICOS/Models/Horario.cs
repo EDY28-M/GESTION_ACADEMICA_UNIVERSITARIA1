@@ -32,6 +32,6 @@ namespace API_REST_CURSOSACADEMICOS.Models
         public string Tipo { get; set; } = "Teoría"; // Teoría, Práctica
 
         [ForeignKey("IdCurso")]
-        public virtual Curso Curso { get; set; }
+        public virtual Curso Curso { get; set; } = null!;
     }
 }

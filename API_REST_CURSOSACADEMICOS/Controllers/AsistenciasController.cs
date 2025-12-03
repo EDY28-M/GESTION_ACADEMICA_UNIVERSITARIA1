@@ -307,7 +307,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         /// </summary>
         [HttpGet("mis-asistencias")]
         [Authorize]
-        public async Task<ActionResult<List<AsistenciasPorCursoDto>>> GetMisAsistencias(
+        public ActionResult<List<AsistenciasPorCursoDto>> GetMisAsistencias(
             [FromQuery] int? idPeriodo = null)
         {
             try

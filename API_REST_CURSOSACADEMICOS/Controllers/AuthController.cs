@@ -356,6 +356,9 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
 
                 _logger.LogInformation($"Login exitoso para docente: {docente.Correo}");
 
+                // Obtener minutos de expiración desde configuración (default: 30 minutos)
+                var expirationMinutes = int.TryParse(_configuration["JwtSettings:ExpirationMinutes"], out int mins) ? mins : 30;
+
                 return Ok(new AuthDocenteResponseDto
                 {
                     Id = docente.Id,
@@ -363,7 +366,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     Correo = docente.Correo!,
                     Token = token,
                     RefreshToken = refreshToken,
-                    Expiracion = DateTime.UtcNow.AddHours(8)
+                    Expiracion = DateTime.UtcNow.AddMinutes(expirationMinutes)
                 });
             }
             catch (Exception ex)
@@ -396,11 +399,14 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // Obtener minutos de expiración desde configuración (default: 30 minutos)
+            var expirationMinutes = int.TryParse(_configuration["JwtSettings:ExpirationMinutes"], out int minutes) ? minutes : 30;
+
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(8),
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
                 signingCredentials: credentials
             );
 
