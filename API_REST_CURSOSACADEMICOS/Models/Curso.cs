@@ -37,9 +37,10 @@ namespace API_REST_CURSOSACADEMICOS.Models
         [Required]
         public int Ciclo { get; set; }
 
-        [StringLength(5)]
-        [Column("semestre")]
-        public string? Semestre { get; set; } // "I" o "II"
+        // NOTA: Columna 'semestre' eliminada - ahora hay un solo ingreso anual
+        // [StringLength(5)]
+        // [Column("semestre")]
+        // public string? Semestre { get; set; } // "I" o "II"
 
         // Foreign Key
         [Column("idDocente")]

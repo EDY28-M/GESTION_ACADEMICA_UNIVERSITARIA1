@@ -184,7 +184,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     .ToList();
 
                 // Historial completo por períodos
-                var historialPorPeriodo = estudiante.Matriculas
+                var historialPorPeriodoRaw = estudiante.Matriculas
                     .GroupBy(m => new { m.IdPeriodo, m.Periodo?.Nombre, m.Periodo?.Anio, m.Periodo?.Ciclo })
                     .Select(g => new
                     {
@@ -236,7 +236,30 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                                 : (m.Notas.Any() && m.Notas.Sum(n => n.NotaValor * n.Peso / 100) >= 10.5m)
                         }).ToList()
                     })
-                    .OrderByDescending(g => g.anio)
+                    .OrderBy(g => g.anio)  // Ordenar cronológicamente
+                    .ThenBy(g => g.ciclo)
+                    .ToList();
+
+                // Agregar cicloAcademico (1, 2, 3... secuencial)
+                var historialPorPeriodo = historialPorPeriodoRaw
+                    .Select((g, index) => new
+                    {
+                        g.idPeriodo,
+                        g.nombrePeriodo,
+                        g.anio,
+                        g.ciclo,
+                        cicloAcademico = index + 1,  // Ciclo académico secuencial (1, 2, 3, 4...)
+                        g.esActivo,
+                        g.totalCursos,
+                        g.cursosMatriculados,
+                        g.cursosRetirados,
+                        g.cursosAprobados,
+                        g.cursosDesaprobados,
+                        g.creditosMatriculados,
+                        g.promedioGeneral,
+                        g.cursos
+                    })
+                    .OrderByDescending(g => g.anio)  // Ordenar para visualización: más reciente primero
                     .ThenByDescending(g => g.ciclo)
                     .ToList();
 
@@ -786,13 +809,16 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 // Activar el período seleccionado
                 periodo.Activo = true;
 
-                // ✅ AVANZAR CICLO DE ESTUDIANTES que aprobaron el período anterior
+                // ✅ AVANZAR CICLO DE ESTUDIANTES que cursaron el período anterior
+                // El ciclo avanza por cada período cursado (no importa si aprobó o no)
                 int estudiantesAvanzaron = 0;
                 
                 if (periodoAnterior != null)
                 {
-                    // Obtener todos los estudiantes
-                    var estudiantes = await _context.Estudiantes.ToListAsync();
+                    // Obtener todos los estudiantes activos
+                    var estudiantes = await _context.Estudiantes
+                        .Where(e => e.Estado == "Activo")
+                        .ToListAsync();
                     
                     foreach (var estudiante in estudiantes)
                     {
@@ -800,24 +826,12 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                         var matriculasPeriodoAnterior = await _context.Matriculas
                             .Where(m => m.IdEstudiante == estudiante.Id && 
                                        m.IdPeriodo == periodoAnterior.Id &&
-                                       m.Estado != "Retirado")
+                                       m.Estado != "Retirado" &&
+                                       m.PromedioFinal.HasValue)  // Solo si tiene nota final (período cerrado)
                             .ToListAsync();
                         
-                        // Si no tuvo matrículas en el período anterior, skip
-                        if (!matriculasPeriodoAnterior.Any()) continue;
-                        
-                        // Contar cursos aprobados y totales
-                        int totalCursos = matriculasPeriodoAnterior.Count;
-                        int cursosAprobados = matriculasPeriodoAnterior.Count(m => m.Estado == "Aprobado");
-                        
-                        // ✅ NUEVA LÓGICA: Avanzar si aprobó TODO o si el promedio es >= 10.5
-                        bool aproboTodo = cursosAprobados == totalCursos;
-                        bool tienePromedioSuficiente = matriculasPeriodoAnterior
-                            .Where(m => m.PromedioFinal.HasValue)
-                            .All(m => m.PromedioFinal >= 10.5m);
-                        
-                        // Si aprobó todos O tiene promedio suficiente, avanza de ciclo
-                        if (totalCursos > 0 && (aproboTodo || tienePromedioSuficiente))
+                        // Si tuvo matrículas con notas en el período anterior, avanza de ciclo
+                        if (matriculasPeriodoAnterior.Any())
                         {
                             if (estudiante.CicloActual < 10) // Máximo 10 ciclos
                             {

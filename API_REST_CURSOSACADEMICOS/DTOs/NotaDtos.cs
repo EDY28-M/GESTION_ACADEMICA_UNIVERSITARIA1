@@ -36,7 +36,8 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public int IdPeriodo { get; set; }
         public string Periodo { get; set; } = string.Empty;
         public int Anio { get; set; }
-        public string Ciclo { get; set; } = string.Empty;
+        public string Ciclo { get; set; } = string.Empty;  // 'I' o 'II' - Semestre del período
+        public int CicloAcademico { get; set; }  // 1, 2, 3... 10 - Ciclo académico del estudiante
         public DateTime? FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
         public string Estado { get; set; } = string.Empty;

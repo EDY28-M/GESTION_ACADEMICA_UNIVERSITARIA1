@@ -39,7 +39,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     HorasPractica = c.HorasPractica,
                     HorasTotales = c.HorasTotales,
                     Ciclo = c.Ciclo,
-                    Semestre = c.Semestre,
                     IdDocente = c.IdDocente,
                     Docente = c.Docente != null ? new DocenteSimpleDto
                     {
@@ -83,7 +82,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     HorasPractica = c.HorasPractica,
                     HorasTotales = c.HorasTotales,
                     Ciclo = c.Ciclo,
-                    Semestre = c.Semestre,
                     IdDocente = c.IdDocente,
                     Docente = c.Docente != null ? new DocenteSimpleDto
                     {
@@ -132,7 +130,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     Creditos = c.Creditos,
                     HorasSemanal = c.HorasSemanal,
                     Ciclo = c.Ciclo,
-                    Semestre = c.Semestre,
                     IdDocente = c.IdDocente,
                     Docente = c.Docente != null ? new DocenteSimpleDto
                     {
@@ -162,7 +159,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     Creditos = c.Creditos,
                     HorasSemanal = c.HorasSemanal,
                     Ciclo = c.Ciclo,
-                    Semestre = c.Semestre,
                     IdDocente = c.IdDocente,
                     Docente = c.Docente != null ? new DocenteSimpleDto
                     {
@@ -220,7 +216,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 HorasPractica = cursoDto.HorasPractica,
                 HorasTotales = cursoDto.HorasTotales,
                 Ciclo = cursoDto.Ciclo,
-                Semestre = cursoDto.Semestre,
                 IdDocente = cursoDto.IdDocente
             };
 
@@ -269,7 +264,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 HorasPractica = curso.HorasPractica,
                 HorasTotales = curso.HorasTotales,
                 Ciclo = curso.Ciclo,
-                Semestre = curso.Semestre,
                 IdDocente = curso.IdDocente,
                 Docente = curso.Docente != null ? new DocenteSimpleDto
                 {
@@ -341,7 +335,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             curso.HorasPractica = cursoDto.HorasPractica;
             curso.HorasTotales = cursoDto.HorasTotales;
             curso.Ciclo = cursoDto.Ciclo;
-            curso.Semestre = cursoDto.Semestre;
             curso.IdDocente = cursoDto.IdDocente;
 
             // Actualizar prerequisitos

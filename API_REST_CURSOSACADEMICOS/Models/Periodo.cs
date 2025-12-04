@@ -20,7 +20,7 @@ namespace API_REST_CURSOSACADEMICOS.Models
 
         [Column("ciclo")]
         [MaxLength(20)]
-        public string Ciclo { get; set; } = string.Empty;
+        public string Ciclo { get; set; } = "Anual"; // Cambiado de "I"/"II" a "Anual"
 
         [Column("fecha_inicio")]
         public DateTime FechaInicio { get; set; }

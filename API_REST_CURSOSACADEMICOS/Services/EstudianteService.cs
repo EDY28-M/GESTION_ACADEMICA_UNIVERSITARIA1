@@ -94,6 +94,17 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 return new List<CursoDisponibleDto>();
             }
 
+            // Calcular créditos aprobados del estudiante para validación de Práctica Profesional
+            var creditosAprobados = await _context.Matriculas
+                .Include(m => m.Curso)
+                .Where(m => m.IdEstudiante == idEstudiante &&
+                           m.PromedioFinal.HasValue &&
+                           m.PromedioFinal.Value >= 11 &&
+                           m.Estado != "Retirado")
+                .SumAsync(m => m.Curso != null ? m.Curso.Creditos : 0);
+
+            const int CREDITOS_MINIMOS_PRACTICA = 140;
+
             // Usar la función SQL fn_CursosDisponibles que filtra por ciclo actual
             // y excluye cursos ya aprobados
             var cursos = await _context.Cursos
@@ -105,25 +116,42 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 .Include(c => c.Docente)
                 .ToListAsync();
 
-            return cursos.Select(curso => new CursoDisponibleDto
-            {
-                Id = curso.Id,
-                Codigo = curso.Codigo,
-                NombreCurso = curso.NombreCurso,
-                Creditos = curso.Creditos,
-                HorasSemanal = curso.HorasSemanal,
-                Ciclo = curso.Ciclo,
-                NombreDocente = curso.Docente != null 
-                    ? $"{curso.Docente.Nombres} {curso.Docente.Apellidos}" 
-                    : "Sin asignar",
-                YaMatriculado = false,
-                Disponible = true,
-                MotivoNoDisponible = string.Empty,
-                EstudiantesMatriculados = _context.Matriculas
-                    .Count(m => m.IdCurso == curso.Id && 
-                               m.IdPeriodo == periodoActivo.Id && 
-                               m.Estado == "Matriculado"),
-                CapacidadMaxima = 30 // Valor por defecto, se puede parametrizar por curso en el futuro
+            return cursos.Select(curso => {
+                // Validación especial para Práctica Pre Profesional
+                bool esPracticaProfesional = (curso.NombreCurso.ToLower().Contains("práctica") || 
+                                              curso.NombreCurso.ToLower().Contains("practica") ||
+                                              curso.NombreCurso.ToLower().Contains("prácticas")) && 
+                                             curso.NombreCurso.ToLower().Contains("profesional");
+                
+                bool disponible = true;
+                string motivoNoDisponible = string.Empty;
+
+                if (esPracticaProfesional && creditosAprobados < CREDITOS_MINIMOS_PRACTICA)
+                {
+                    disponible = false;
+                    motivoNoDisponible = $"Requiere {CREDITOS_MINIMOS_PRACTICA} créditos aprobados (tienes {creditosAprobados})";
+                }
+
+                return new CursoDisponibleDto
+                {
+                    Id = curso.Id,
+                    Codigo = curso.Codigo,
+                    NombreCurso = curso.NombreCurso,
+                    Creditos = curso.Creditos,
+                    HorasSemanal = curso.HorasSemanal,
+                    Ciclo = curso.Ciclo,
+                    NombreDocente = curso.Docente != null 
+                        ? $"{curso.Docente.Nombres} {curso.Docente.Apellidos}" 
+                        : "Sin asignar",
+                    YaMatriculado = false,
+                    Disponible = disponible,
+                    MotivoNoDisponible = motivoNoDisponible,
+                    EstudiantesMatriculados = _context.Matriculas
+                        .Count(m => m.IdCurso == curso.Id && 
+                                   m.IdPeriodo == periodoActivo.Id && 
+                                   m.Estado == "Matriculado"),
+                    CapacidadMaxima = 30
+                };
             }).ToList();
         }
 
@@ -232,11 +260,83 @@ namespace API_REST_CURSOSACADEMICOS.Services
             if (matriculaExistente != null && matriculaExistente.Estado == "Matriculado")
                 throw new Exception("Ya estás matriculado en este curso para el período seleccionado");
 
+            // ============================================================
+            // VALIDACIÓN ESPECIAL: Práctica Pre Profesional requiere 140 créditos
+            // ============================================================
+            if (curso.NombreCurso.ToLower().Contains("práctica") && curso.NombreCurso.ToLower().Contains("profesional") ||
+                curso.NombreCurso.ToLower().Contains("practica") && curso.NombreCurso.ToLower().Contains("profesional") ||
+                curso.NombreCurso.ToLower().Contains("prácticas") && curso.NombreCurso.ToLower().Contains("profesional"))
+            {
+                const int CREDITOS_MINIMOS_PRACTICA = 140;
+                
+                // Calcular créditos aprobados del estudiante
+                var creditosAprobados = await _context.Matriculas
+                    .Include(m => m.Curso)
+                    .Where(m => m.IdEstudiante == idEstudiante &&
+                               m.PromedioFinal.HasValue &&
+                               m.PromedioFinal.Value >= 11 &&
+                               m.Estado != "Retirado")
+                    .SumAsync(m => m.Curso != null ? m.Curso.Creditos : 0);
+
+                if (creditosAprobados < CREDITOS_MINIMOS_PRACTICA)
+                {
+                    throw new Exception($"Para matricularte en '{curso.NombreCurso}' necesitas tener al menos {CREDITOS_MINIMOS_PRACTICA} créditos aprobados. Actualmente tienes {creditosAprobados} créditos aprobados.");
+                }
+            }
+
             // Validar prerequisitos solo si NO es autorizado
             // NO validar ciclo aquí porque fn_CursosDisponibles ya filtra correctamente
             // (incluye cursos del ciclo actual Y cursos reprobados de ciclos anteriores)
             if (!isAutorizado)
             {
+                // ============================================================
+                // NUEVA VALIDACIÓN: Verificar si el curso fue jalado ESTE MISMO AÑO
+                // Si jaló en 2025-I, no puede llevarlo hasta 2026-I
+                // ============================================================
+                var cursoJaladoMismoAnio = await _context.Matriculas
+                    .Include(m => m.Periodo)
+                    .Where(m => m.IdEstudiante == idEstudiante && 
+                               m.IdCurso == dto.IdCurso &&
+                               m.PromedioFinal.HasValue &&
+                               m.PromedioFinal.Value < 11 &&  // Jalado
+                               m.Estado != "Retirado" &&
+                               m.Periodo != null &&
+                               m.Periodo.Anio == periodo.Anio)  // Mismo año que el período activo
+                    .FirstOrDefaultAsync();
+
+                if (cursoJaladoMismoAnio != null)
+                {
+                    throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque lo jalaste en el período {cursoJaladoMismoAnio.Periodo?.Nombre}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}) para volver a llevarlo.");
+                }
+
+                // ============================================================
+                // NUEVA VALIDACIÓN: Verificar si algún prerequisito fue jalado ESTE MISMO AÑO
+                // Los cursos dependientes también quedan bloqueados
+                // ============================================================
+                var prerequisitosDelCurso = await _context.CursoPrerequisitos
+                    .Include(cp => cp.Prerequisito)
+                    .Where(cp => cp.IdCurso == dto.IdCurso)
+                    .ToListAsync();
+
+                foreach (var prereq in prerequisitosDelCurso)
+                {
+                    var prereqJaladoMismoAnio = await _context.Matriculas
+                        .Include(m => m.Periodo)
+                        .Where(m => m.IdEstudiante == idEstudiante && 
+                                   m.IdCurso == prereq.IdCursoPrerequisito &&
+                                   m.PromedioFinal.HasValue &&
+                                   m.PromedioFinal.Value < 11 &&  // Jalado
+                                   m.Estado != "Retirado" &&
+                                   m.Periodo != null &&
+                                   m.Periodo.Anio == periodo.Anio)  // Mismo año
+                        .FirstOrDefaultAsync();
+
+                    if (prereqJaladoMismoAnio != null)
+                    {
+                        throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque su prerequisito '{prereq.Prerequisito.NombreCurso}' fue jalado en el período {prereqJaladoMismoAnio.Periodo?.Nombre}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}).");
+                    }
+                }
+
                 // Validar prerequisitos del curso
                 var prerequisitos = await _context.CursoPrerequisitos
                     .Include(cp => cp.Prerequisito)
@@ -489,15 +589,22 @@ namespace API_REST_CURSOSACADEMICOS.Services
             // Variables para cálculo de promedio acumulado
             decimal sumaNotasPonderadasAcumuladas = 0;
             int creditosAcumuladosTotal = 0;
+            
+            // Variable para el ciclo académico (avanza 1 por cada período cursado)
+            int cicloAcademico = 0;
 
             foreach (var periodo in periodosCerrados)
             {
+                // Incrementar ciclo académico (1, 2, 3, 4... por cada período cursado)
+                cicloAcademico++;
+                
                 var semestreDto = new SemestreRegistroDto
                 {
                     IdPeriodo = periodo.Id,
                     Periodo = periodo.Nombre,
                     Anio = periodo.Anio,
-                    Ciclo = periodo.Ciclo,
+                    Ciclo = periodo.Ciclo,  // 'I' o 'II' - Semestre del período
+                    CicloAcademico = cicloAcademico,  // 1, 2, 3... - Ciclo académico del estudiante
                     FechaInicio = periodo.FechaInicio,
                     FechaFin = periodo.FechaFin,
                     Estado = periodo.Activo ? "Abierto" : "Cerrado"
