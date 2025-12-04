@@ -1,6 +1,7 @@
 # ========================================
 # GITHUB ACTIONS - CI/CD PARA GOOGLE CLOUD RUN
 # Despliegue automático con pruebas automáticas
+# Última actualización: Trigger deploy
 # ========================================
 
 name: Build, Test and Deploy to Google Cloud Run
