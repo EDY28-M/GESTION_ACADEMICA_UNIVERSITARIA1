@@ -11,3 +11,15 @@ terraform/.terraform/providers/
 
 # Otros
 *.exe
+
+# Google Cloud - NUNCA subir claves de servicio
+*.json
+!appsettings.json
+!appsettings.*.json
+
+# Archivos de secretos
+*.pem
+*.key
+*credentials*
+*secret*
+

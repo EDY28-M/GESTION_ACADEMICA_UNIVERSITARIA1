@@ -8,6 +8,9 @@
 **/out/
 **/publish/
 
+# Proyecto de Tests (no necesario en producción)
+API_REST_CURSOSACADEMICOS.Tests/
+
 # Directorios de Visual Studio
 **/.vs/
 **/.vscode/
@@ -45,6 +48,9 @@
 **/.git/
 **/.gitignore
 **/.gitattributes
+
+# GitHub Actions
+.github/
 
 # Documentación
 **/README.md
