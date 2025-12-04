@@ -1195,6 +1195,18 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     return BadRequest(new { mensaje = "El período ya está cerrado" });
                 }
 
+                // Contar estudiantes antes de cerrar para el resumen
+                var estudiantesConMatriculas = await _context.Matriculas
+                    .Where(m => m.IdPeriodo == id && m.Estado == "Matriculado")
+                    .Select(m => m.IdEstudiante)
+                    .Distinct()
+                    .CountAsync();
+
+                int totalEstudiantes = 0;
+                int totalMatriculas = 0;
+                int cursosAprobados = 0;
+                int cursosDesaprobados = 0;
+
                 // Ejecutar el procedimiento almacenado sp_CerrarPeriodo
                 using (var command = _context.Database.GetDbConnection().CreateCommand())
                 {
@@ -1215,23 +1227,10 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                             // Leer el resumen del SP si existe
                             if (reader.Read())
                             {
-                                var totalEstudiantes = reader.GetInt32(0);
-                                var totalMatriculas = reader.GetInt32(1);
-                                var cursosAprobados = reader.GetInt32(2);
-                                var cursosDesaprobados = reader.GetInt32(3);
-
-                                return Ok(new
-                                {
-                                    mensaje = "Período cerrado exitosamente",
-                                    estadisticas = new
-                                    {
-                                        totalEstudiantes = totalEstudiantes,
-                                        totalMatriculas = totalMatriculas,
-                                        cursosAprobados = cursosAprobados,
-                                        cursosDesaprobados = cursosDesaprobados,
-                                        fechaCierre = DateTime.Now.ToString("o")
-                                    }
-                                });
+                                totalEstudiantes = reader.GetInt32(0);
+                                totalMatriculas = reader.GetInt32(1);
+                                cursosAprobados = reader.GetInt32(2);
+                                cursosDesaprobados = reader.GetInt32(3);
                             }
                         }
                     }
@@ -1241,11 +1240,52 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     }
                 }
 
-                // Si no hay resultados del SP, retornar respuesta genérica
+                // Calcular promovidos y retenidos basándose en las matrículas
+                var estudiantesPromovidos = 0;
+                var estudiantesRetenidos = 0;
+
+                // Contar estudiantes que aprobaron todos o la mayoría de sus cursos
+                var estudiantesConResultados = await _context.Matriculas
+                    .Where(m => m.IdPeriodo == id && m.Estado == "Matriculado" && m.PromedioFinal.HasValue)
+                    .GroupBy(m => m.IdEstudiante)
+                    .Select(g => new
+                    {
+                        IdEstudiante = g.Key,
+                        TotalCursos = g.Count(),
+                        CursosAprobados = g.Count(m => m.PromedioFinal >= 11),
+                        CursosReprobados = g.Count(m => m.PromedioFinal < 11)
+                    })
+                    .ToListAsync();
+
+                foreach (var est in estudiantesConResultados)
+                {
+                    // Si aprobó todos los cursos o la mayoría, es promovido
+                    if (est.CursosReprobados == 0 || est.CursosAprobados > est.CursosReprobados)
+                    {
+                        estudiantesPromovidos++;
+                    }
+                    else
+                    {
+                        estudiantesRetenidos++;
+                    }
+                }
+
+                var totalProcesados = totalEstudiantes > 0 ? totalEstudiantes : estudiantesConMatriculas;
+
                 return Ok(new
                 {
                     mensaje = "Período cerrado exitosamente",
-                    fechaCierre = DateTime.Now.ToString("o")
+                    estudiantesPromovidos = estudiantesPromovidos,
+                    estudiantesRetenidos = estudiantesRetenidos,
+                    totalEstudiantesProcesados = totalProcesados,
+                    estadisticas = new
+                    {
+                        totalEstudiantes = totalProcesados,
+                        totalMatriculas = totalMatriculas,
+                        cursosAprobados = cursosAprobados,
+                        cursosDesaprobados = cursosDesaprobados,
+                        fechaCierre = DateTime.Now.ToString("o")
+                    }
                 });
             }
             catch (Exception ex)

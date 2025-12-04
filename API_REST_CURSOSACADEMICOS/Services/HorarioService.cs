@@ -85,10 +85,28 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
         public async Task<IEnumerable<HorarioDto>> ObtenerPorDocenteAsync(int idDocente)
         {
+            // Obtener el período activo
+            var periodoActivo = await _context.Periodos
+                .Where(p => p.Activo == true)
+                .FirstOrDefaultAsync();
+
+            if (periodoActivo == null)
+            {
+                // Si no hay período activo, retornar lista vacía
+                return Enumerable.Empty<HorarioDto>();
+            }
+
+            // Obtener cursos que tienen matrículas en el período activo
+            var cursosConMatriculasActivas = await _context.Matriculas
+                .Where(m => m.IdPeriodo == periodoActivo.Id)
+                .Select(m => m.IdCurso)
+                .Distinct()
+                .ToListAsync();
+
             var horarios = await _context.Horarios
                 .Include(h => h.Curso)
                 .ThenInclude(c => c.Docente)
-                .Where(h => h.Curso.IdDocente == idDocente)
+                .Where(h => h.Curso.IdDocente == idDocente && cursosConMatriculasActivas.Contains(h.IdCurso))
                 .OrderBy(h => h.DiaSemana)
                 .ThenBy(h => h.HoraInicio)
                 .ToListAsync();
@@ -98,9 +116,22 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
         public async Task<IEnumerable<HorarioDto>> ObtenerPorEstudianteAsync(int idEstudiante)
         {
-            // Obtener cursos matriculados activos
+            // Obtener el período activo
+            var periodoActivo = await _context.Periodos
+                .Where(p => p.Activo == true)
+                .FirstOrDefaultAsync();
+
+            if (periodoActivo == null)
+            {
+                // Si no hay período activo, retornar lista vacía
+                return Enumerable.Empty<HorarioDto>();
+            }
+
+            // Obtener cursos matriculados activos DEL PERÍODO ACTIVO
             var cursosMatriculados = await _context.Matriculas
-                .Where(m => m.IdEstudiante == idEstudiante && m.Estado == "Matriculado")
+                .Where(m => m.IdEstudiante == idEstudiante 
+                         && m.Estado == "Matriculado"
+                         && m.IdPeriodo == periodoActivo.Id)
                 .Select(m => m.IdCurso)
                 .ToListAsync();
 
