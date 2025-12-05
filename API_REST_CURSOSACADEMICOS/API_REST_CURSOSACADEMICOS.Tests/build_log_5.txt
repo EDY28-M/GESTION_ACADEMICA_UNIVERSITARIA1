@@ -1,0 +1,10 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  API_REST_CURSOSACADEMICOS -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.dll
+  API_REST_CURSOSACADEMICOS.Tests -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll
+
+Compilación correcta.
+    0 Advertencia(s)
+    0 Errores
+
+Tiempo transcurrido 00:00:04.86

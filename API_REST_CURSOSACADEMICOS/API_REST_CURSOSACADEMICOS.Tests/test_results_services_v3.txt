@@ -1,0 +1,12 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  API_REST_CURSOSACADEMICOS -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.dll
+C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Estudiantes\EstudiantesControllerMeritoTests.cs(153,53): warning CS8604: Posible argumento de referencia nulo para el parámetro "source" en "int Enumerable.Count<string>(IEnumerable<string> source)". [C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\API_REST_CURSOSACADEMICOS.Tests.csproj]
+  API_REST_CURSOSACADEMICOS.Tests -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll
+Serie de pruebas para C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll (.NETCoreApp,Version=v9.0)
+Versión 17.14.1 (x64) de VSTest
+
+Iniciando la ejecución de pruebas, espere...
+1 archivos de prueba en total coincidieron con el patrón especificado.
+
+Correctas! - Con error:     0, Superado:     4, Omitido:     0, Total:     4, Duración: 1 s - API_REST_CURSOSACADEMICOS.Tests.dll (net9.0)

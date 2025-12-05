@@ -1,0 +1,159 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  API_REST_CURSOSACADEMICOS -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.dll
+  API_REST_CURSOSACADEMICOS.Tests -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll
+Serie de pruebas para C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll (.NETCoreApp,Version=v9.0)
+Versión 17.14.1 (x64) de VSTest
+
+Iniciando la ejecución de pruebas, espere...
+1 archivos de prueba en total coincidieron con el patrón especificado.
+[xUnit.net 00:00:02.40]     API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithValidCurso_ReturnsOk [FAIL]
+  Con error API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithValidCurso_ReturnsOk [371 ms]
+  Mensaje de error:
+   Expected type to be Microsoft.AspNetCore.Mvc.OkObjectResult, but found Microsoft.AspNetCore.Mvc.ActionResult`1[[API_REST_CURSOSACADEMICOS.DTOs.ReporteAsistenciaDto, API_REST_CURSOSACADEMICOS, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].
+  Seguimiento de la pila:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message)
+   at FluentAssertions.Types.TypeAssertions.Be(Type expected, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType(Type expectedType, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType[T](String because, Object[] becauseArgs)
+   at API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithValidCurso_ReturnsOk() in C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Asistencias\AsistenciasControllerReportesTests.cs:line 152
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:02.40]     API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorCiclo_OrdersByCursoName [FAIL]
+[xUnit.net 00:00:02.41]     API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorDocente_WithInvalidDocente_ReturnsEmptyList [FAIL]
+[xUnit.net 00:00:02.42]     API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithDateFilter_UsesFilters [FAIL]
+  Con error API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorCiclo_OrdersByCursoName [160 ms]
+  Mensaje de error:
+   Expected cursos 
+{
+    API_REST_CURSOSACADEMICOS.DTOs.CursoDto
+    {
+        Ciclo = 1, 
+        Codigo = <null>, 
+        Creditos = 4, 
+        Docente = API_REST_CURSOSACADEMICOS.DTOs.DocenteSimpleDto
+        {
+            Apellidos = "Pérez", 
+            Id = 1, 
+            Nombres = "Juan", 
+            Profesion = <null>
+        }, 
+        HorasPractica = <null>, 
+        HorasSemanal = 6, 
+        HorasTeoria = <null>, 
+        HorasTotales = <null>, 
+        Id = 1, 
+        IdDocente = 1, 
+        NombreCurso = "Programación I", 
+        Prerequisitos = {empty}, 
+        PrerequisitosIds = {empty}, 
+        Semestre = <null>
+    }, 
+    API_REST_CURSOSACADEMICOS.DTOs.CursoDto
+    {
+        Ciclo = 1, 
+        Codigo = <null>, 
+        Creditos = 5, 
+        Docente = <null>, 
+        HorasPractica = <null>, 
+        HorasSemanal = 6, 
+        HorasTeoria = <null>, 
+        HorasTotales = <null>, 
+        Id = 5, 
+        IdDocente = <null>, 
+        NombreCurso = "Cálculo I", 
+        Prerequisitos = {empty}, 
+        PrerequisitosIds = {empty}, 
+        Semestre = <null>
+    }
+} to be ordered "by NombreCurso" and result in 
+{
+    API_REST_CURSOSACADEMICOS.DTOs.CursoDto
+    {
+        Ciclo = 1, 
+        Codigo = <null>, 
+        Creditos = 5, 
+        Docente = <null>, 
+        HorasPractica = <null>, 
+        HorasSemanal = 6, 
+        HorasTeoria = <null>, 
+        HorasTotales = <null>, 
+        Id = 5, 
+        IdDocente = <null>, 
+        NombreCurso = "Cálculo I", 
+        Prerequisitos = {empty}, 
+        PrerequisitosIds = {empty}, 
+        Semestre = <null>
+    }, 
+    API_REST_CURSOSACADEMICOS.DTOs.CursoDto
+    {
+        Ciclo = 1, 
+        Codigo = <null>, 
+        Creditos = 4, 
+        Docente = API_REST_CURSOSACADEMICOS.DTOs.DocenteSimpleDto
+        {
+            Apellidos = "Pérez", 
+            Id = 1, 
+            Nombres = "Juan", 
+            Profesion = <null>
+        }, 
+        HorasPractica = <null>, 
+        HorasSemanal = 6, 
+        HorasTeoria = <null>, 
+        HorasTotales = <null>, 
+        Id = 1, 
+        IdDocente = 1, 
+        NombreCurso = "Programación I", 
+        Prerequisitos = {empty}, 
+        PrerequisitosIds = {empty}, 
+        Semestre = <null>
+    }
+}.
+  Seguimiento de la pila:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Func`1[] argProviders)
+   at FluentAssertions.Collections.GenericCollectionAssertions`3.BeOrderedBy[TSelector](Expression`1 propertyExpression, IComparer`1 comparer, SortOrder direction, String because, Object[] becauseArgs)
+   at FluentAssertions.Collections.GenericCollectionAssertions`3.BeInAscendingOrder[TSelector](Expression`1 propertyExpression, IComparer`1 comparer, String because, Object[] becauseArgs)
+   at FluentAssertions.Collections.GenericCollectionAssertions`3.BeInAscendingOrder[TSelector](Expression`1 propertyExpression, String because, Object[] becauseArgs)
+   at API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorCiclo_OrdersByCursoName() in C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Cursos\CursosControllerFiltrosTests.cs:line 289
+--- End of stack trace from previous location ---
+  Con error API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorDocente_WithInvalidDocente_ReturnsEmptyList [2 ms]
+  Mensaje de error:
+   Expected type to be Microsoft.AspNetCore.Mvc.OkObjectResult, but found Microsoft.AspNetCore.Mvc.NotFoundObjectResult.
+  Seguimiento de la pila:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message)
+   at FluentAssertions.Types.TypeAssertions.Be(Type expected, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType(Type expectedType, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType[T](String because, Object[] becauseArgs)
+   at API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos.CursosControllerFiltrosTests.GetCursosPorDocente_WithInvalidDocente_ReturnsEmptyList() in C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Cursos\CursosControllerFiltrosTests.cs:line 192
+--- End of stack trace from previous location ---
+  Con error API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithDateFilter_UsesFilters [8 ms]
+  Mensaje de error:
+   Expected type to be Microsoft.AspNetCore.Mvc.OkObjectResult, but found Microsoft.AspNetCore.Mvc.ActionResult`1[[API_REST_CURSOSACADEMICOS.DTOs.ReporteAsistenciaDto, API_REST_CURSOSACADEMICOS, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]].
+  Seguimiento de la pila:
+     at FluentAssertions.Execution.XUnit2TestFramework.Throw(String message)
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc)
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message)
+   at FluentAssertions.Types.TypeAssertions.Be(Type expected, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType(Type expectedType, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType[T](String because, Object[] becauseArgs)
+   at API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias.AsistenciasControllerReportesTests.GenerarReporteAsistencia_WithDateFilter_UsesFilters() in C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Asistencias\AsistenciasControllerReportesTests.cs:line 175
+--- End of stack trace from previous location ---
+
+Con error! - Con error:     4, Superado:   267, Omitido:     0, Total:   271, Duración: 6 s - API_REST_CURSOSACADEMICOS.Tests.dll (net9.0)

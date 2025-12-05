@@ -1,0 +1,13 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  API_REST_CURSOSACADEMICOS -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.dll
+C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Estudiantes\EstudiantesControllerMeritoTests.cs(153,53): warning CS8604: Posible argumento de referencia nulo para el parámetro "source" en "int Enumerable.Count<string>(IEnumerable<string> source)". [C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\API_REST_CURSOSACADEMICOS.Tests.csproj]
+  API_REST_CURSOSACADEMICOS.Tests -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.Tests.dll
+
+Compilación correcta.
+
+C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Estudiantes\EstudiantesControllerMeritoTests.cs(153,53): warning CS8604: Posible argumento de referencia nulo para el parámetro "source" en "int Enumerable.Count<string>(IEnumerable<string> source)". [C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\API_REST_CURSOSACADEMICOS.Tests.csproj]
+    1 Advertencia(s)
+    0 Errores
+
+Tiempo transcurrido 00:00:04.85

@@ -1,0 +1,12 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  API_REST_CURSOSACADEMICOS -> C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\bin\Debug\net9.0\API_REST_CURSOSACADEMICOS.dll
+C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Asistencias\AsistenciasControllerReportesTests.cs(23,27): error CS0246: El nombre del tipo o del espacio de nombres 'ILogger<>' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\API_REST_CURSOSACADEMICOS.Tests.csproj]
+
+ERROR al compilar.
+
+C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\Controllers\Asistencias\AsistenciasControllerReportesTests.cs(23,27): error CS0246: El nombre del tipo o del espacio de nombres 'ILogger<>' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\cater\Downloads\DOCKER CONTENEDOR\BACKEND_DEVELOMENT\API_REST_CURSOSACADEMICOS\API_REST_CURSOSACADEMICOS.Tests\API_REST_CURSOSACADEMICOS.Tests.csproj]
+    0 Advertencia(s)
+    1 Errores
+
+Tiempo transcurrido 00:00:03.76
