@@ -145,12 +145,13 @@ public class EstudiantesControllerMeritoTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var okResult = result.Result as OkObjectResult;
-        var promociones = okResult!.Value as IEnumerable<string>;
+        var promociones = okResult?.Value as IEnumerable<string>;
         
         promociones.Should().NotBeNull();
-        promociones.Should().Contain("2024");
+        promociones!.Should().Contain("2024");
         promociones.Should().Contain("2023");
-        promociones!.Distinct().Count().Should().Be(promociones.Count());
+        var promocionesList = promociones.ToList();
+        promocionesList.Distinct().Count().Should().Be(promocionesList.Count);
     }
 
     [Fact]
@@ -165,10 +166,12 @@ public class EstudiantesControllerMeritoTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var okResult = result.Result as OkObjectResult;
-        var promociones = (okResult!.Value as IEnumerable<string>)?.ToList();
+        var promociones = (okResult?.Value as IEnumerable<string>)?.ToList() ?? new List<string>();
+        
+        promociones.Should().NotBeEmpty();
         
         // 2024 debería aparecer antes que 2023
-        var index2024 = promociones!.IndexOf("2024");
+        var index2024 = promociones.IndexOf("2024");
         var index2023 = promociones.IndexOf("2023");
         
         index2024.Should().BeLessThan(index2023);
@@ -202,7 +205,7 @@ public class EstudiantesControllerMeritoTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var okResult = result.Result as OkObjectResult;
-        var promociones = okResult!.Value as IEnumerable<string>;
+        var promociones = okResult?.Value as IEnumerable<string> ?? Enumerable.Empty<string>();
         
         promociones.Should().NotContain("2022");
     }
@@ -235,10 +238,10 @@ public class EstudiantesControllerMeritoTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
         var okResult = result.Result as OkObjectResult;
-        var promociones = (okResult!.Value as IEnumerable<string>)?.ToList();
+        var promociones = (okResult?.Value as IEnumerable<string>)?.ToList() ?? new List<string>();
         
         promociones.Should().NotContain((string?)null);
-        promociones!.All(p => !string.IsNullOrEmpty(p)).Should().BeTrue();
+        promociones.All(p => !string.IsNullOrEmpty(p)).Should().BeTrue();
     }
 
     #endregion
@@ -295,9 +298,10 @@ public class EstudiantesControllerMeritoTests : IDisposable
         // Assert
         result.Result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result.Result as NotFoundObjectResult;
-        var response = notFoundResult!.Value;
+        var response = notFoundResult?.Value;
         
-        var mensaje = response!.GetType().GetProperty("mensaje")?.GetValue(response);
+        response.Should().NotBeNull();
+        var mensaje = response?.GetType().GetProperty("mensaje")?.GetValue(response);
         mensaje.Should().NotBeNull();
     }
 

@@ -208,10 +208,10 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 IdPeriodo = m.IdPeriodo,
                 NombrePeriodo = m.Periodo?.Nombre ?? string.Empty,
                 FechaMatricula = m.FechaMatricula,
-                Estado = m.Estado,
+                Estado = m.Estado ?? string.Empty,
                 FechaRetiro = m.FechaRetiro,
                 // Usar PromedioFinal guardado si existe (período cerrado), sino calcular
-                PromedioFinal = m.PromedioFinal ?? CalcularPromedioFinal(m.Notas.ToList())
+                PromedioFinal = m.PromedioFinal ?? CalcularPromedioFinal(m.Notas?.ToList() ?? new List<Nota>())
             }).ToList();
         }
 
@@ -306,7 +306,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
                 if (cursoJaladoMismoAnio != null)
                 {
-                    throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque lo jalaste en el período {cursoJaladoMismoAnio.Periodo?.Nombre}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}) para volver a llevarlo.");
+                    throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque lo jalaste en el período {cursoJaladoMismoAnio.Periodo?.Nombre ?? "anterior"}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}) para volver a llevarlo.");
                 }
 
                 // ============================================================
@@ -333,7 +333,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
                     if (prereqJaladoMismoAnio != null)
                     {
-                        throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque su prerequisito '{prereq.Prerequisito.NombreCurso}' fue jalado en el período {prereqJaladoMismoAnio.Periodo?.Nombre}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}).");
+                        throw new Exception($"No puedes matricularte en '{curso.NombreCurso}' porque su prerequisito '{prereq.Prerequisito?.NombreCurso ?? "desconocido"}' fue jalado en el período {prereqJaladoMismoAnio.Periodo?.Nombre ?? "anterior"}. Debes esperar hasta el próximo año académico ({periodo.Anio + 1}).");
                     }
                 }
 
@@ -366,7 +366,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                                 .OrderByDescending(m => m.FechaMatricula)
                                 .FirstOrDefaultAsync();
                             
-                            string mensaje = prereq.Prerequisito.NombreCurso;
+                            string mensaje = prereq.Prerequisito?.NombreCurso ?? "Curso desconocido";
                             
                             if (matriculaPrerreq != null && matriculaPrerreq.PromedioFinal.HasValue)
                             {
@@ -456,7 +456,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 IdPeriodo = matriculaFinal.IdPeriodo,
                 NombrePeriodo = periodo.Nombre,
                 FechaMatricula = matriculaFinal.FechaMatricula,
-                Estado = matriculaFinal.Estado
+                Estado = matriculaFinal.Estado ?? "Matriculado"
             };
         }
 
@@ -466,7 +466,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 .Include(m => m.Periodo)
                 .Include(m => m.Curso)
                 .Include(m => m.Estudiante!)
-                    .ThenInclude(e => e.Usuario)
+                    .ThenInclude(e => e!.Usuario)
                 .FirstOrDefaultAsync(m => m.Id == idMatricula && m.IdEstudiante == idEstudiante);
 
             if (matricula == null)
@@ -488,12 +488,12 @@ namespace API_REST_CURSOSACADEMICOS.Services
             {
                 Tipo = "academico",
                 Accion = "retiro",
-                Mensaje = $"Te has retirado del curso: {matricula.Curso?.NombreCurso}",
+                Mensaje = $"Te has retirado del curso: {matricula.Curso?.NombreCurso ?? "Desconocido"}",
                 MetadataJson = System.Text.Json.JsonSerializer.Serialize(new 
                 { 
                     idCurso = matricula.IdCurso, 
-                    nombreCurso = matricula.Curso?.NombreCurso,
-                    periodo = matricula.Periodo?.Nombre
+                    nombreCurso = matricula.Curso?.NombreCurso ?? "Desconocido",
+                    periodo = matricula.Periodo?.Nombre ?? "Desconocido"
                 }),
                 IdUsuario = matricula.Estudiante?.IdUsuario,
                 FechaCreacion = DateTime.Now,
@@ -507,13 +507,13 @@ namespace API_REST_CURSOSACADEMICOS.Services
         {
             var query = _context.Notas
                 .Include(n => n.Matricula!)
-                    .ThenInclude(m => m.Curso)
+                    .ThenInclude(m => m!.Curso)
                 .Include(n => n.Matricula!)
-                    .ThenInclude(m => m.Periodo)
+                    .ThenInclude(m => m!.Periodo)
                 .Where(n => n.Matricula != null && 
                            n.Matricula.IdEstudiante == idEstudiante &&
                            n.Matricula.Estado != "Retirado" &&  // Excluir cursos retirados
-                           n.Matricula.Periodo!.Activo == true); // ✅ SOLO PERIODOS ACTIVOS
+                           n.Matricula.Periodo != null && n.Matricula.Periodo.Activo == true); // SOLO PERIODOS ACTIVOS
 
             if (idPeriodo.HasValue)
             {
