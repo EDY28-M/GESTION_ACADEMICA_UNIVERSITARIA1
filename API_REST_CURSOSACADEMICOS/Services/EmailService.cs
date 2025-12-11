@@ -136,7 +136,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
             <!-- Warning -->
             <div style='background-color: #fff3cd; border-left: 4px solid #C7A740; padding: 15px; margin: 30px 0; border-radius: 0 8px 8px 0;'>
                 <p style='color: #856404; margin: 0; font-size: 14px;'>
-                    ⏰ <strong>Importante:</strong> Este enlace expirará en <strong>1 hora</strong> por seguridad.
+                    ⏰ <strong>Importante:</strong> Este enlace expirará en <strong>24 horas</strong> por seguridad.
                 </p>
             </div>
         </div>

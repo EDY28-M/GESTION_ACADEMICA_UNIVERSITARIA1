@@ -14,7 +14,7 @@ services:
     container_name: sqlserver_gestionacademica
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=MiPassword123!
+      - SA_PASSWORD=${SQL_SA_PASSWORD}
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
@@ -35,12 +35,20 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=GestionAcademica;User Id=sa;Password=MiPassword123!;TrustServerCertificate=True;MultipleActiveResultSets=true
-      - JwtSettings__SecretKey=GestionAcademica_SuperSecretKey_2025_MinLength32Characters!
-      - JwtSettings__Issuer=GestionAcademicaAPI
-      - JwtSettings__Audience=GestionAcademicaClients
-      - JwtSettings__ExpirationHours=24
-      - JwtSettings__RefreshTokenExpirationDays=7
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=GestionAcademica;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=${JWT_ISSUER}
+      - JwtSettings__Audience=${JWT_AUDIENCE}
+      - JwtSettings__ExpirationMinutes=${JWT_EXPIRATION_MINUTES}
+      - JwtSettings__RefreshTokenExpirationDays=${JWT_REFRESH_DAYS}
+      - EmailSettings__SmtpServer=${EMAIL_SMTP_SERVER}
+      - EmailSettings__SmtpPort=${EMAIL_SMTP_PORT}
+      - EmailSettings__SenderEmail=${EMAIL_SENDER_EMAIL}
+      - EmailSettings__SenderName=${EMAIL_SENDER_NAME}
+      - EmailSettings__Password=${EMAIL_PASSWORD}
+      - EmailSettings__EnableSsl=${EMAIL_ENABLE_SSL}
+      - AppSettings__FrontendUrl=${FRONTEND_URL}
+      - AppSettings__ExposePasswordResetToken=${EXPOSE_PASSWORD_RESET_TOKEN}
     ports:
       - "5000:8080"
     networks:

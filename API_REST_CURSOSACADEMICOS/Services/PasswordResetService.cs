@@ -116,15 +116,17 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 var emailEnviado = await _emailService.SendPasswordResetEmailAsync(email, nuevoToken, userName);
 
                 _logger.LogInformation(
-                    "Token de recuperación generado para {Email}: {Token} (expira: {Expiracion}) - Email enviado: {Enviado}",
-                    email, nuevoToken, expiracion, emailEnviado);
+                    "Token de recuperación generado para {Email} (expira: {Expiracion}) - Email enviado: {Enviado}",
+                    email, expiracion, emailEnviado);
+
+                var exposeToken = ShouldExposeResetToken();
 
                 return new ForgotPasswordResponseDto
                 {
                     Success = true,
                     Message = "¡Instrucciones enviadas! Por favor, revisa tu bandeja de entrada (y la carpeta de spam).",
                     Email = MaskEmail(email),
-                    Token = nuevoToken // Devolver token para desarrollo (quitar en producción)
+                    Token = exposeToken ? nuevoToken : null
                 };
             }
             catch (Exception ex)
@@ -398,12 +400,23 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 "Para: {Email}\n" +
                 "Asunto: Recuperación de Contraseña - Academia Universitaria\n" +
                 "Enlace de recuperación: {ResetUrl}\n" +
-                "Token: {Token}\n" +
                 "Expira en: 24 horas\n" +
                 "======================================================",
-                email, resetUrl, token);
+                email, resetUrl);
 
             await Task.CompletedTask;
+        }
+
+        private bool ShouldExposeResetToken()
+        {
+            var configured = _configuration["AppSettings:ExposePasswordResetToken"];
+            if (bool.TryParse(configured, out var value))
+            {
+                return value;
+            }
+
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            return string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Hubs;
+using API_REST_CURSOSACADEMICOS.Extensions;
 using API_REST_CURSOSACADEMICOS.Models;
 
 namespace API_REST_CURSOSACADEMICOS.Controllers
@@ -28,8 +29,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NotificacionDto>>> GetNotificaciones([FromQuery] int? limit = 100)
         {
-            var userIdClaim = User.FindFirst("id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (!User.TryGetUserId(out var userId))
             {
                 return Unauthorized();
             }
@@ -58,8 +58,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         [HttpGet("no-leidas")]
         public async Task<ActionResult<int>> GetCountNoLeidas()
         {
-            var userIdClaim = User.FindFirst("id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (!User.TryGetUserId(out var userId))
             {
                 return Unauthorized();
             }
@@ -120,8 +119,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         [HttpPut("marcar-leidas")]
         public async Task<IActionResult> MarcarComoLeidas([FromBody] NotificacionMarkReadDto dto)
         {
-            var userIdClaim = User.FindFirst("id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (!User.TryGetUserId(out var userId))
             {
                 return Unauthorized();
             }
@@ -144,8 +142,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         [HttpDelete]
         public async Task<IActionResult> LimpiarNotificaciones()
         {
-            var userIdClaim = User.FindFirst("id")?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (!User.TryGetUserId(out var userId))
             {
                 return Unauthorized();
             }
