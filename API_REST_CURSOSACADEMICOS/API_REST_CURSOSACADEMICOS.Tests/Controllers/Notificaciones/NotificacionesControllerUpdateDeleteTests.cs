@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.Hubs;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
@@ -28,7 +29,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new NotificacionesController(_context, _mockHubContext.Object);
+            _controller = new NotificacionesController(new NotificacionesService(_context), _mockHubContext.Object);
         }
 
         private void SetupUser(int userId)
@@ -56,7 +57,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                     Id = 1,
                     Tipo = "info",
                     Accion = "matricula",
-                    Mensaje = "Matrícula realizada",
+                    Mensaje = "Matrï¿½cula realizada",
                     IdUsuario = 1,
                     FechaCreacion = DateTime.Now,
                     Leida = false
@@ -86,7 +87,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                     Id = 4,
                     Tipo = "info",
                     Accion = "otro",
-                    Mensaje = "Notificación de otro usuario",
+                    Mensaje = "Notificaciï¿½n de otro usuario",
                     IdUsuario = 2,
                     FechaCreacion = DateTime.Now,
                     Leida = false
@@ -144,7 +145,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             var notificacion4 = await _context.Notificaciones.FindAsync(4);
             
             notificacion1!.Leida.Should().BeTrue();
-            notificacion4!.Leida.Should().BeFalse(); // No debería cambiar
+            notificacion4!.Leida.Should().BeFalse(); // No deberï¿½a cambiar
         }
 
         [Fact]

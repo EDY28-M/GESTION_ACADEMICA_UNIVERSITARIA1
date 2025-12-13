@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new AdminController(_mockEstudianteService.Object, _context);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            _controller = new AdminController(adminService);
         }
 
         private void SetupAdminUser()
@@ -167,7 +169,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 Nombre = "2024-II",
                 Anio = 2024,
                 Ciclo = "II",
-                FechaInicio = new DateTime(2024, 12, 15), // Fecha inicio después de fin
+                FechaInicio = new DateTime(2024, 12, 15), // Fecha inicio despuï¿½s de fin
                 FechaFin = new DateTime(2024, 8, 1),
                 Activo = false
             };
@@ -233,7 +235,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             // Arrange
             SetupAdminUser();
             
-            // Crear un período inactivo
+            // Crear un perï¿½odo inactivo
             var periodoInactivo = new Periodo
             {
                 Id = 2,
@@ -305,7 +307,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             SetupAdminUser();
             await SeedPeriodos();
 
-            // Crear estudiante y matrícula asociada al período
+            // Crear estudiante y matrï¿½cula asociada al perï¿½odo
             var usuario = new Usuario
             {
                 Id = 1,

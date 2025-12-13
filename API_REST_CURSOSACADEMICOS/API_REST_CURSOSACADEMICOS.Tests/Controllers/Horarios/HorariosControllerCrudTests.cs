@@ -1,13 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
-using API_REST_CURSOSACADEMICOS.Data;
-using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
@@ -15,19 +12,14 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
     public class HorariosControllerCrudTests
     {
         private readonly Mock<IHorarioService> _mockHorarioService;
-        private readonly GestionAcademicaContext _context;
+        private readonly Mock<IUserLookupService> _mockUserLookupService;
         private readonly HorariosController _controller;
 
         public HorariosControllerCrudTests()
         {
             _mockHorarioService = new Mock<IHorarioService>();
-            
-            var options = new DbContextOptionsBuilder<GestionAcademicaContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-            
-            _context = new GestionAcademicaContext(options);
-            _controller = new HorariosController(_mockHorarioService.Object, _context);
+            _mockUserLookupService = new Mock<IUserLookupService>();
+            _controller = new HorariosController(_mockHorarioService.Object, _mockUserLookupService.Object);
         }
 
         private void SetupAdminUser()
@@ -59,20 +51,20 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
                 HoraInicio = "08:00",
                 HoraFin = "10:00",
                 Aula = "A101",
-                Tipo = "Teoría"
+                Tipo = "Teorï¿½a"
             };
 
             var horarioDto = new HorarioDto
             {
                 Id = 1,
                 IdCurso = 1,
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 DiaSemana = 1,
                 DiaSemanaTexto = "Lunes",
                 HoraInicio = "08:00",
                 HoraFin = "10:00",
                 Aula = "A101",
-                Tipo = "Teoría"
+                Tipo = "Teorï¿½a"
             };
 
             _mockHorarioService.Setup(s => s.CrearHorarioAsync(It.IsAny<CrearHorarioDto>()))
@@ -99,11 +91,11 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
                 DiaSemana = 1,
                 HoraInicio = "08:00",
                 HoraFin = "10:00",
-                Tipo = "Teoría"
+                Tipo = "Teorï¿½a"
             };
 
             _mockHorarioService.Setup(s => s.CrearHorarioAsync(It.IsAny<CrearHorarioDto>()))
-                .ThrowsAsync(new ArgumentException("Datos inválidos"));
+                .ThrowsAsync(new ArgumentException("Datos invï¿½lidos"));
 
             // Act
             var result = await _controller.CrearHorario(crearHorarioDto);
@@ -124,7 +116,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
                 DiaSemana = 1,
                 HoraInicio = "08:00",
                 HoraFin = "10:00",
-                Tipo = "Teoría"
+                Tipo = "Teorï¿½a"
             };
 
             _mockHorarioService.Setup(s => s.CrearHorarioAsync(It.IsAny<CrearHorarioDto>()))
@@ -176,7 +168,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
             var horarios = new List<HorarioDto>
             {
                 new HorarioDto { Id = 1, IdCurso = 1, DiaSemanaTexto = "Lunes" },
-                new HorarioDto { Id = 2, IdCurso = 1, DiaSemanaTexto = "Miércoles" }
+                new HorarioDto { Id = 2, IdCurso = 1, DiaSemanaTexto = "Miï¿½rcoles" }
             };
 
             _mockHorarioService.Setup(s => s.ObtenerPorCursoAsync(1)).ReturnsAsync(horarios);

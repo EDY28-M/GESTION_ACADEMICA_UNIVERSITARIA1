@@ -5,6 +5,7 @@ using Moq;
 using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.Data;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Health;
 
@@ -26,7 +27,8 @@ public class HealthControllerLiveTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _loggerMock = new Mock<ILogger<HealthController>>();
-        _controller = new HealthController(_context, _loggerMock.Object);
+        var healthService = new HealthService(_context);
+        _controller = new HealthController(healthService, _loggerMock.Object);
     }
 
     #region Tests de Live endpoint

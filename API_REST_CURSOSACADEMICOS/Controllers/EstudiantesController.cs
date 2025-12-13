@@ -1,10 +1,7 @@
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
-using API_REST_CURSOSACADEMICOS.Data;
-using API_REST_CURSOSACADEMICOS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Controllers
@@ -15,12 +12,12 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
     public class EstudiantesController : ControllerBase
     {
         private readonly IEstudianteService _estudianteService;
-        private readonly GestionAcademicaContext _context;
+        private readonly IEstudiantesControllerService _controllerService;
 
-        public EstudiantesController(IEstudianteService estudianteService, GestionAcademicaContext context)
+        public EstudiantesController(IEstudianteService estudianteService, IEstudiantesControllerService controllerService)
         {
             _estudianteService = estudianteService;
-            _context = context;
+            _controllerService = controllerService;
         }
 
         private int GetUsuarioId()
@@ -41,27 +38,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                var estudiantes = await _context.Estudiantes
-                    .Select(e => new EstudianteDto
-                    {
-                        Id = e.Id,
-                        Codigo = e.Codigo,
-                        Nombres = e.Nombres,
-                        Apellidos = e.Apellidos,
-                        Dni = e.Dni,
-                        Correo = e.Correo,
-                        Telefono = e.Telefono,
-                        Direccion = e.Direccion,
-                        CicloActual = e.CicloActual,
-                        CreditosAcumulados = e.CreditosAcumulados,
-                        PromedioAcumulado = e.PromedioAcumulado,
-                        PromedioSemestral = e.PromedioSemestral,
-                        Estado = e.Estado,
-                        Carrera = e.Carrera
-                    })
-                    .OrderBy(e => e.Apellidos)
-                    .ThenBy(e => e.Nombres)
-                    .ToListAsync();
+                var estudiantes = await _controllerService.GetAllAdminAsync();
 
                 return Ok(estudiantes);
             }
@@ -80,26 +57,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                var estudiante = await _context.Estudiantes
-                    .Where(e => e.Id == id)
-                    .Select(e => new EstudianteDto
-                    {
-                        Id = e.Id,
-                        Codigo = e.Codigo,
-                        Nombres = e.Nombres,
-                        Apellidos = e.Apellidos,
-                        Dni = e.Dni,
-                        Correo = e.Correo,
-                        Telefono = e.Telefono,
-                        Direccion = e.Direccion,
-                        CicloActual = e.CicloActual,
-                        CreditosAcumulados = e.CreditosAcumulados,
-                        PromedioAcumulado = e.PromedioAcumulado,
-                        PromedioSemestral = e.PromedioSemestral,
-                        Estado = e.Estado,
-                        Carrera = e.Carrera
-                    })
-                    .FirstOrDefaultAsync();
+                var estudiante = await _controllerService.GetByIdAdminAsync(id);
 
                 if (estudiante == null)
                     return NotFound(new { mensaje = "Estudiante no encontrado" });
@@ -157,12 +115,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 var cursos = await _estudianteService.GetCursosDisponiblesPorEstudianteAsync(estudiante.Id);
 
                 // Verificar cuáles ya están matriculados en el periodo actual
-                var cursosMatriculados = await _context.Matriculas
-                    .Where(m => m.IdEstudiante == estudiante.Id && 
-                               m.IdPeriodo == idPeriodo.Value && 
-                               m.Estado == "Matriculado")
-                    .Select(m => m.IdCurso)
-                    .ToListAsync();
+                var cursosMatriculados = await _controllerService.GetCursosMatriculadosIdsAsync(estudiante.Id, idPeriodo.Value);
 
                 // Actualizar el estado de matriculado
                 foreach (var curso in cursos)
@@ -376,13 +329,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 if (estudianteDto == null)
                     return NotFound(new { mensaje = "Perfil de estudiante no encontrado" });
 
-                // Obtener el estudiante completo del contexto para acceder a PromedioPonderado
-                var estudiante = await _context.Estudiantes
-                    .FirstOrDefaultAsync(e => e.Id == estudianteDto.Id);
-
-                if (estudiante == null)
-                    return NotFound(new { mensaje = "Estudiante no encontrado" });
-
                 // Obtener todas las matrículas (filtrando período si se especifica)
                 var matriculas = await _estudianteService.GetMisCursosAsync(estudianteDto.Id, idPeriodo);
 
@@ -407,9 +353,9 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     cursosDesaprobados = matriculas.Count(m => m.Estado == "Desaprobado" || 
                                                               (m.Estado == "Matriculado" && m.PromedioFinal < 10.5m && m.PromedioFinal > 0)),
                     cursosRetirados = matriculas.Count(m => m.Estado == "Retirado"),
-                    creditosAcumulados = estudiante.CreditosAcumulados,
-                    promedioAcumulado = estudiante.PromedioAcumulado,
-                    promedioSemestral = estudiante.PromedioSemestral
+                    creditosAcumulados = estudianteDto.CreditosAcumulados,
+                    promedioAcumulado = estudianteDto.PromedioAcumulado,
+                    promedioSemestral = estudianteDto.PromedioSemestral
                 };
 
                 return Ok(estadisticas);
@@ -427,10 +373,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 var usuarioId = GetUsuarioId();
-                
-                // Obtener el estudiante
-                var estudiante = await _context.Estudiantes
-                    .FirstOrDefaultAsync(e => e.IdUsuario == usuarioId);
+                var estudiante = await _estudianteService.GetByUsuarioIdAsync(usuarioId);
 
                 if (estudiante == null)
                     return NotFound(new { mensaje = "Estudiante no encontrado" });
@@ -452,10 +395,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 var usuarioId = GetUsuarioId();
-                
-                // Obtener el estudiante
-                var estudiante = await _context.Estudiantes
-                    .FirstOrDefaultAsync(e => e.IdUsuario == usuarioId);
+                var estudiante = await _estudianteService.GetByUsuarioIdAsync(usuarioId);
 
                 if (estudiante == null)
                     return NotFound(new { mensaje = "Estudiante no encontrado" });
@@ -485,81 +425,8 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 if (estudiante == null)
                     return NotFound(new { mensaje = "Perfil de estudiante no encontrado" });
 
-                // Obtener los prerequisitos del curso
-                var prerequisitos = await _context.CursoPrerequisitos
-                    .Include(cp => cp.Prerequisito)
-                    .Where(cp => cp.IdCurso == idCurso)
-                    .ToListAsync();
-
-                if (!prerequisitos.Any())
-                {
-                    return Ok(new 
-                    { 
-                        cumplePrerequisitos = true, 
-                        mensaje = "Este curso no tiene prerequisitos",
-                        prerequisitosFaltantes = new List<object>()
-                    });
-                }
-
-                // Verificar cuáles prerequisitos ha aprobado el estudiante
-                // Un curso se considera aprobado si tiene PromedioFinal >= 11
-                var cursosAprobados = await _context.Matriculas
-                    .Where(m => m.IdEstudiante == estudiante.Id && 
-                               m.PromedioFinal.HasValue &&
-                               m.PromedioFinal.Value >= 11)
-                    .Select(m => m.IdCurso)
-                    .ToListAsync();
-
-                var prerequisitosFaltantes = new List<object>();
-                bool cumpleTodos = true;
-
-                foreach (var prereq in prerequisitos)
-                {
-                    var aprobado = cursosAprobados.Contains(prereq.IdCursoPrerequisito);
-                    if (!aprobado)
-                    {
-                        cumpleTodos = false;
-                        
-                        // Verificar si lo cursó pero no aprobó
-                        var matriculaCurso = await _context.Matriculas
-                            .Where(m => m.IdEstudiante == estudiante.Id && 
-                                   m.IdCurso == prereq.IdCursoPrerequisito)
-                            .OrderByDescending(m => m.FechaMatricula)
-                            .FirstOrDefaultAsync();
-                        
-                        string estado = "No cursado";
-                        decimal? nota = null;
-                        
-                        if (matriculaCurso != null && matriculaCurso.PromedioFinal.HasValue)
-                        {
-                            nota = matriculaCurso.PromedioFinal.Value;
-                            estado = nota >= 11 ? "Aprobado" : $"Reprobado (Nota: {nota})";
-                        }
-                        else if (matriculaCurso != null)
-                        {
-                            estado = "Cursando";
-                        }
-                        
-                        prerequisitosFaltantes.Add(new
-                        {
-                            id = prereq.Prerequisito.Id,
-                            codigo = prereq.Prerequisito.Codigo,
-                            nombre = prereq.Prerequisito.NombreCurso,
-                            ciclo = prereq.Prerequisito.Ciclo,
-                            estado = estado,
-                            nota = nota
-                        });
-                    }
-                }
-
-                return Ok(new
-                {
-                    cumplePrerequisitos = cumpleTodos,
-                    mensaje = cumpleTodos 
-                        ? "Cumples con todos los prerequisitos" 
-                        : "Te faltan aprobar algunos prerequisitos",
-                    prerequisitosFaltantes
-                });
+                var payload = await _controllerService.VerificarPrerequisitosAsync(estudiante.Id, idCurso);
+                return Ok(payload);
             }
             catch (Exception ex)
             {
@@ -575,46 +442,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                var query = promocion == null
-                    ? "SELECT * FROM vw_OrdenMerito ORDER BY promocion DESC, posicion ASC"
-                    : $"SELECT * FROM vw_OrdenMerito WHERE promocion = '{promocion}' ORDER BY posicion ASC";
-
-                var connection = _context.Database.GetDbConnection();
-                await connection.OpenAsync();
-
-                var command = connection.CreateCommand();
-                command.CommandText = query;
-
-                var ordenMerito = new List<OrdenMeritoDto>();
-
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        ordenMerito.Add(new OrdenMeritoDto
-                        {
-                            Posicion = Convert.ToInt32(reader.GetInt64(reader.GetOrdinal("posicion"))),
-                            Codigo = reader.GetString(reader.GetOrdinal("codigo")),
-                            Nombres = reader.GetString(reader.GetOrdinal("nombres")),
-                            Apellidos = reader.GetString(reader.GetOrdinal("apellidos")),
-                            Promocion = reader.IsDBNull(reader.GetOrdinal("promocion")) ? "" : reader.GetString(reader.GetOrdinal("promocion")),
-                            Semestre = reader.GetInt32(reader.GetOrdinal("ciclo_actual")),
-                            CreditosLlevadosSemestre = reader.GetInt32(reader.GetOrdinal("creditos_llevados_semestre")),
-                            CreditosAprobadosSemestre = reader.GetInt32(reader.GetOrdinal("creditos_aprobados_semestre")),
-                            TotalCreditosLlevados = reader.GetInt32(reader.GetOrdinal("total_creditos_llevados")),
-                            TotalCreditosAprobados = reader.GetInt32(reader.GetOrdinal("total_creditos_aprobados")),
-                            PromedioPonderadoSemestral = reader.IsDBNull(reader.GetOrdinal("promedio_ponderado_semestral")) ? 0 : reader.GetDecimal(reader.GetOrdinal("promedio_ponderado_semestral")),
-                            PromedioPonderadoAcumulado = reader.IsDBNull(reader.GetOrdinal("promedio_ponderado_acumulado")) ? 0 : reader.GetDecimal(reader.GetOrdinal("promedio_ponderado_acumulado")),
-                            RangoMerito = reader.IsDBNull(reader.GetOrdinal("rango_merito")) ? "" : reader.GetString(reader.GetOrdinal("rango_merito")),
-                            TotalEstudiantes = reader.GetInt32(reader.GetOrdinal("total_estudiantes")),
-                            PeriodoNombre = reader.IsDBNull(reader.GetOrdinal("periodo_nombre")) ? null : reader.GetString(reader.GetOrdinal("periodo_nombre")),
-                            EstadoPeriodo = reader.IsDBNull(reader.GetOrdinal("estado_periodo")) ? null : reader.GetString(reader.GetOrdinal("estado_periodo"))
-                        });
-                    }
-                }
-
-                await connection.CloseAsync();
-
+                var ordenMerito = await _controllerService.GetOrdenMeritoAsync(promocion);
                 return Ok(ordenMerito);
             }
             catch (Exception ex)
@@ -636,13 +464,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                var promociones = await _context.Estudiantes
-                    .Where(e => e.Promocion != null && e.Estado == "Activo")
-                    .Select(e => e.Promocion!)
-                    .Distinct()
-                    .OrderByDescending(p => p)
-                    .ToListAsync();
-
+                var promociones = await _controllerService.GetPromocionesAsync();
                 return Ok(promociones);
             }
             catch (Exception ex)
@@ -660,67 +482,11 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 var usuarioId = GetUsuarioId();
-                var estudiante = await _context.Estudiantes
-                    .FirstOrDefaultAsync(e => e.IdUsuario == usuarioId);
-
-                if (estudiante == null)
-                    return NotFound(new { mensaje = "Estudiante no encontrado" });
-
-                // Verificar datos del estudiante
-                if (string.IsNullOrEmpty(estudiante.Promocion))
-                    return NotFound(new { 
-                        mensaje = "Tu promoción no ha sido registrada. Contacta con administración.",
-                        codigo = estudiante.Codigo,
-                        requiereActualizacion = true
-                    });
-
-                var query = $"SELECT * FROM vw_OrdenMerito WHERE codigo = '{estudiante.Codigo}'";
-
-                var connection = _context.Database.GetDbConnection();
-                await connection.OpenAsync();
-
-                var command = connection.CreateCommand();
-                command.CommandText = query;
-
-                OrdenMeritoDto? miPosicion = null;
-
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        miPosicion = new OrdenMeritoDto
-                        {
-                            Posicion = Convert.ToInt32(reader.GetInt64(reader.GetOrdinal("posicion"))),
-                            Codigo = reader.GetString(reader.GetOrdinal("codigo")),
-                            Nombres = reader.GetString(reader.GetOrdinal("nombres")),
-                            Apellidos = reader.GetString(reader.GetOrdinal("apellidos")),
-                            Promocion = reader.IsDBNull(reader.GetOrdinal("promocion")) ? "" : reader.GetString(reader.GetOrdinal("promocion")),
-                            Semestre = reader.GetInt32(reader.GetOrdinal("ciclo_actual")),
-                            CreditosLlevadosSemestre = reader.GetInt32(reader.GetOrdinal("creditos_llevados_semestre")),
-                            CreditosAprobadosSemestre = reader.GetInt32(reader.GetOrdinal("creditos_aprobados_semestre")),
-                            TotalCreditosLlevados = reader.GetInt32(reader.GetOrdinal("total_creditos_llevados")),
-                            TotalCreditosAprobados = reader.GetInt32(reader.GetOrdinal("total_creditos_aprobados")),
-                            PromedioPonderadoSemestral = reader.IsDBNull(reader.GetOrdinal("promedio_ponderado_semestral")) ? 0 : reader.GetDecimal(reader.GetOrdinal("promedio_ponderado_semestral")),
-                            PromedioPonderadoAcumulado = reader.IsDBNull(reader.GetOrdinal("promedio_ponderado_acumulado")) ? 0 : reader.GetDecimal(reader.GetOrdinal("promedio_ponderado_acumulado")),
-                            RangoMerito = reader.IsDBNull(reader.GetOrdinal("rango_merito")) ? "" : reader.GetString(reader.GetOrdinal("rango_merito")),
-                            TotalEstudiantes = reader.GetInt32(reader.GetOrdinal("total_estudiantes")),
-                            PeriodoNombre = reader.IsDBNull(reader.GetOrdinal("periodo_nombre")) ? null : reader.GetString(reader.GetOrdinal("periodo_nombre")),
-                            EstadoPeriodo = reader.IsDBNull(reader.GetOrdinal("estado_periodo")) ? null : reader.GetString(reader.GetOrdinal("estado_periodo"))
-                        };
-                    }
-                }
-
-                await connection.CloseAsync();
-
-                if (miPosicion == null)
-                    return NotFound(new { 
-                        mensaje = "No apareces en el orden de mérito. Verifica que tu estado sea 'Activo' y tengas promoción asignada.",
-                        codigo = estudiante.Codigo,
-                        promocion = estudiante.Promocion,
-                        estado = estudiante.Estado
-                    });
-
-                return Ok(miPosicion);
+                var outcome = await _controllerService.GetMiPosicionMeritoAsync(usuarioId);
+                if (outcome.Status == ServiceOutcomeStatus.Ok) return Ok(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.NotFound) return NotFound(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.BadRequest) return BadRequest(outcome.Payload);
+                return StatusCode(500, new { mensaje = "Error al obtener posición" });
             }
             catch (Exception ex)
             {
@@ -739,25 +505,11 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 var usuarioId = GetUsuarioId();
-                
-                // Buscar el usuario
-                var usuario = await _context.Usuarios.FindAsync(usuarioId);
-                if (usuario == null)
-                    return NotFound(new { mensaje = "Usuario no encontrado" });
-
-                // Verificar la contraseña actual usando BCrypt
-                if (!BCrypt.Net.BCrypt.Verify(request.ContrasenaActual, usuario.PasswordHash))
-                    return BadRequest(new { mensaje = "La contraseña actual es incorrecta" });
-
-                // Validar que la nueva contraseña tenga al menos 6 caracteres
-                if (string.IsNullOrWhiteSpace(request.ContrasenaNueva) || request.ContrasenaNueva.Length < 6)
-                    return BadRequest(new { mensaje = "La nueva contraseña debe tener al menos 6 caracteres" });
-
-                // Hashear y actualizar la contraseña
-                usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.ContrasenaNueva);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { mensaje = "Contraseña actualizada exitosamente" });
+                var outcome = await _controllerService.CambiarContrasenaAsync(usuarioId, request);
+                if (outcome.Status == ServiceOutcomeStatus.Ok) return Ok(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.BadRequest) return BadRequest(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.NotFound) return NotFound(outcome.Payload);
+                return StatusCode(500, new { mensaje = "Error al cambiar contraseña" });
             }
             catch (Exception ex)
             {
@@ -771,32 +523,11 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 var usuarioId = GetUsuarioId();
-                
-                // Buscar el estudiante
-                var estudiante = await _context.Estudiantes
-                    .Include(e => e.Usuario)
-                    .FirstOrDefaultAsync(e => e.IdUsuario == usuarioId);
-
-                if (estudiante == null)
-                    return NotFound(new { mensaje = "Estudiante no encontrado" });
-
-                // Actualizar campos
-                estudiante.Apellidos = request.Apellidos;
-                estudiante.Nombres = request.Nombres;
-                estudiante.Dni = request.Dni;
-                estudiante.FechaNacimiento = request.FechaNacimiento;
-                estudiante.Correo = request.Correo;
-                estudiante.Telefono = request.Telefono;
-                estudiante.Direccion = request.Direccion;
-
-                await _context.SaveChangesAsync();
-
-                // Retornar el perfil actualizado
-                var perfilActualizado = await _estudianteService.GetByUsuarioIdAsync(usuarioId);
-                return Ok(new { 
-                    mensaje = "Perfil actualizado exitosamente", 
-                    estudiante = perfilActualizado 
-                });
+                var outcome = await _controllerService.ActualizarPerfilAsync(usuarioId, request);
+                if (outcome.Status == ServiceOutcomeStatus.Ok) return Ok(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.BadRequest) return BadRequest(outcome.Payload);
+                if (outcome.Status == ServiceOutcomeStatus.NotFound) return NotFound(outcome.Payload);
+                return StatusCode(500, new { mensaje = "Error al actualizar perfil" });
             }
             catch (Exception ex)
             {

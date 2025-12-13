@@ -7,30 +7,21 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using API_REST_CURSOSACADEMICOS.Data;
-using API_REST_CURSOSACADEMICOS.Services;
-using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Application;
+using API_REST_CURSOSACADEMICOS.Infrastructure;
 using API_REST_CURSOSACADEMICOS.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-// Configurar Entity Framework
-builder.Services.AddDbContext<GestionAcademicaContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // Configurar Health Checks para Load Balancer
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<GestionAcademicaContext>("database")
     .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"));
-
-// Registrar servicios (Dependency Injection - SOLID)
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IEstudianteService, EstudianteService>();
-builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
-builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
-builder.Services.AddScoped<IHorarioService, HorarioService>();
-builder.Services.AddScoped<EmailService>();
 
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"] 

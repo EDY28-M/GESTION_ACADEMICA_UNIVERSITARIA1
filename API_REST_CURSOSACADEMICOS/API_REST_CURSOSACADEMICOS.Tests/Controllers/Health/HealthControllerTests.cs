@@ -5,6 +5,7 @@ using Moq;
 using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.Data;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Health
 {
@@ -22,7 +23,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Health
             
             _context = new GestionAcademicaContext(options);
             _mockLogger = new Mock<ILogger<HealthController>>();
-            _controller = new HealthController(_context, _mockLogger.Object);
+            var healthService = new HealthService(_context);
+            _controller = new HealthController(healthService, _mockLogger.Object);
         }
 
         [Fact]
@@ -43,7 +45,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Health
             var result = await _controller.GetDetailed();
 
             // Assert
-            // GetDetailed puede devolver Ok (200) u ObjectResult con status 503, ambos son válidos
+            // GetDetailed puede devolver Ok (200) u ObjectResult con status 503, ambos son vï¿½lidos
             result.Should().BeAssignableTo<ObjectResult>();
             var objectResult = result as ObjectResult;
             objectResult!.Value.Should().NotBeNull();

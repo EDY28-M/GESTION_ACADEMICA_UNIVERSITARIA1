@@ -2,12 +2,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Hubs;
 using API_REST_CURSOSACADEMICOS.Extensions;
-using API_REST_CURSOSACADEMICOS.Models;
+using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 
 namespace API_REST_CURSOSACADEMICOS.Controllers
 {
@@ -16,12 +14,12 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
     [Route("api/[controller]")]
     public class NotificacionesController : ControllerBase
     {
-        private readonly GestionAcademicaContext _context;
+        private readonly INotificacionesService _notificacionesService;
         private readonly IHubContext<NotificationsHub> _hubContext;
 
-        public NotificacionesController(GestionAcademicaContext context, IHubContext<NotificationsHub> hubContext)
+        public NotificacionesController(INotificacionesService notificacionesService, IHubContext<NotificationsHub> hubContext)
         {
-            _context = context;
+            _notificacionesService = notificacionesService;
             _hubContext = hubContext;
         }
 
@@ -34,23 +32,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 return Unauthorized();
             }
 
-            var notificaciones = await _context.Notificaciones
-                .Where(n => n.IdUsuario == userId || n.IdUsuario == null) // notificaciones del usuario o globales
-                .OrderByDescending(n => n.FechaCreacion)
-                .Take(limit ?? 100)
-                .ToListAsync();
-
-            var result = notificaciones.Select(n => new NotificacionDto
-            {
-                Id = n.Id,
-                Tipo = n.Tipo,
-                Accion = n.Accion,
-                Mensaje = n.Mensaje,
-                Metadata = string.IsNullOrEmpty(n.MetadataJson) ? null : JsonSerializer.Deserialize<object>(n.MetadataJson),
-                FechaCreacion = n.FechaCreacion,
-                Leida = n.Leida
-            }).ToList();
-
+            var result = await _notificacionesService.GetNotificacionesAsync(userId, limit ?? 100);
             return Ok(result);
         }
 
@@ -63,9 +45,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 return Unauthorized();
             }
 
-            var count = await _context.Notificaciones
-                .Where(n => (n.IdUsuario == userId || n.IdUsuario == null) && !n.Leida)
-                .CountAsync();
+            var count = await _notificacionesService.GetCountNoLeidasAsync(userId);
 
             return Ok(new { count });
         }
@@ -74,30 +54,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         [HttpPost]
         public async Task<ActionResult<NotificacionDto>> CrearNotificacion([FromBody] NotificacionCreateDto dto)
         {
-            var notificacion = new Notificacion
-            {
-                Tipo = dto.Tipo,
-                Accion = dto.Accion,
-                Mensaje = dto.Mensaje,
-                MetadataJson = dto.Metadata != null ? JsonSerializer.Serialize(dto.Metadata) : null,
-                IdUsuario = dto.IdUsuario,
-                FechaCreacion = DateTime.Now,
-                Leida = false
-            };
-
-            _context.Notificaciones.Add(notificacion);
-            await _context.SaveChangesAsync();
-
-            var result = new NotificacionDto
-            {
-                Id = notificacion.Id,
-                Tipo = notificacion.Tipo,
-                Accion = notificacion.Accion,
-                Mensaje = notificacion.Mensaje,
-                Metadata = dto.Metadata,
-                FechaCreacion = notificacion.FechaCreacion,
-                Leida = notificacion.Leida
-            };
+            var result = await _notificacionesService.CrearNotificacionAsync(dto);
 
             // Enviar notificación en tiempo real a todos los clientes conectados
             // Si tiene IdUsuario específico, enviar solo a ese usuario, sino a todos
@@ -110,9 +67,9 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 await _hubContext.Clients.All.SendAsync("ReceiveNotification", result);
             }
 
-            Console.WriteLine($"✅ Notificación creada y enviada: {notificacion.Tipo} - {notificacion.Accion}");
+            Console.WriteLine($"✅ Notificación creada y enviada: {result.Tipo} - {result.Accion}");
 
-            return CreatedAtAction(nameof(GetNotificaciones), new { id = notificacion.Id }, result);
+            return CreatedAtAction(nameof(GetNotificaciones), new { id = result.Id }, result);
         }
 
         // PUT: api/notificaciones/marcar-leidas
@@ -124,18 +81,8 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 return Unauthorized();
             }
 
-            var notificaciones = await _context.Notificaciones
-                .Where(n => dto.NotificacionIds.Contains(n.Id) && (n.IdUsuario == userId || n.IdUsuario == null))
-                .ToListAsync();
-
-            foreach (var notificacion in notificaciones)
-            {
-                notificacion.Leida = true;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Notificaciones marcadas como leídas", count = notificaciones.Count });
+            var count = await _notificacionesService.MarcarComoLeidasAsync(userId, dto.NotificacionIds);
+            return Ok(new { message = "Notificaciones marcadas como leídas", count });
         }
 
         // DELETE: api/notificaciones
@@ -147,14 +94,8 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 return Unauthorized();
             }
 
-            var notificaciones = await _context.Notificaciones
-                .Where(n => n.IdUsuario == userId || n.IdUsuario == null)
-                .ToListAsync();
-
-            _context.Notificaciones.RemoveRange(notificaciones);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Notificaciones eliminadas", count = notificaciones.Count });
+            var count = await _notificacionesService.LimpiarNotificacionesAsync(userId);
+            return Ok(new { message = "Notificaciones eliminadas", count });
         }
     }
 }

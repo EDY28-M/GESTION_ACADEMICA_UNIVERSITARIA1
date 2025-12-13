@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 using API_REST_CURSOSACADEMICOS.Services;
-using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -23,19 +21,19 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
-        private readonly GestionAcademicaContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IUserLookupService _userLookupService;
 
         public AuthController(
             IAuthService authService, 
             ILogger<AuthController> logger,
-            GestionAcademicaContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IUserLookupService userLookupService)
         {
             _authService = authService;
             _logger = logger;
-            _context = context;
             _configuration = configuration;
+            _userLookupService = userLookupService;
         }
 
         /// <summary>
@@ -300,8 +298,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
 
                 // Buscar docente por correo
                 _logger.LogInformation($"Buscando docente con correo: {loginDto.Correo}");
-                var docente = await _context.Docentes
-                    .FirstOrDefaultAsync(d => d.Correo == loginDto.Correo);
+                var docente = await _userLookupService.GetDocenteByEmailAsync(loginDto.Correo);
 
                 if (docente == null)
                 {

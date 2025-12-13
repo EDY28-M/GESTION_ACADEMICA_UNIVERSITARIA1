@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new AdminController(_mockEstudianteService.Object, _context);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            _controller = new AdminController(adminService);
         }
 
         private void SetupAdminUser()
@@ -83,7 +85,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Id = 1,
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Profesion = "Ingeniero"
             };
             await _context.Docentes.AddAsync(docente);
@@ -93,7 +95,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 3,
@@ -108,8 +110,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 Email = "estudiante@test.com",
                 PasswordHash = "hash",
                 Rol = "Estudiante",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 Estado = true
             };
             await _context.Usuarios.AddAsync(usuario);
@@ -119,8 +121,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 Id = 1,
                 IdUsuario = 1,
                 Codigo = "EST001",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 CicloActual = 1, // Ciclo diferente al curso
                 Estado = "Activo"
             };
@@ -159,7 +161,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             var dto = new MatriculaDirigidaDto
             {
                 IdCurso = 1,
-                IdPeriodo = 999, // Período no existe
+                IdPeriodo = 999, // Perï¿½odo no existe
                 IdsEstudiantes = new List<int> { 1 }
             };
 

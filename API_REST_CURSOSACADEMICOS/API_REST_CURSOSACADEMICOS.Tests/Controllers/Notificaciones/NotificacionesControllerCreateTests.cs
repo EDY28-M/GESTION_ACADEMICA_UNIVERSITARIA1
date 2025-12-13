@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.Hubs;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
@@ -38,7 +39,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             _mockClients.Setup(c => c.User(It.IsAny<string>())).Returns(_mockClientProxy.Object);
             _mockHubContext.Setup(h => h.Clients).Returns(_mockClients.Object);
 
-            _controller = new NotificacionesController(_context, _mockHubContext.Object);
+            _controller = new NotificacionesController(new NotificacionesService(_context), _mockHubContext.Object);
         }
 
         private void SetupUser(int userId)
@@ -67,7 +68,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             {
                 Tipo = "info",
                 Accion = "matricula",
-                Mensaje = "Matrícula realizada exitosamente",
+                Mensaje = "Matrï¿½cula realizada exitosamente",
                 IdUsuario = 1
             };
 
@@ -78,7 +79,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             var createdResult = result.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
             var notificacion = createdResult.Value.Should().BeOfType<NotificacionDto>().Subject;
             notificacion.Tipo.Should().Be("info");
-            notificacion.Mensaje.Should().Be("Matrícula realizada exitosamente");
+            notificacion.Mensaje.Should().Be("Matrï¿½cula realizada exitosamente");
             notificacion.Leida.Should().BeFalse();
         }
 
@@ -169,8 +170,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             {
                 Tipo = "info",
                 Accion = "matricula",
-                Mensaje = "Matrícula realizada",
-                Metadata = new { cursoId = 1, cursoNombre = "Matemáticas" },
+                Mensaje = "Matrï¿½cula realizada",
+                Metadata = new { cursoId = 1, cursoNombre = "Matemï¿½ticas" },
                 IdUsuario = 1
             };
 

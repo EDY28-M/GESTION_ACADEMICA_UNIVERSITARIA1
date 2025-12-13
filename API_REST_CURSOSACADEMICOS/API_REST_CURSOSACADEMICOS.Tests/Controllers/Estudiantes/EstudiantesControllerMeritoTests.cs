@@ -8,6 +8,7 @@ using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes;
 
@@ -32,7 +33,8 @@ public class EstudiantesControllerMeritoTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _estudianteServiceMock = new Mock<IEstudianteService>();
-        _controller = new EstudiantesController(_estudianteServiceMock.Object, _context);
+        var controllerService = new EstudiantesControllerService(_context, _estudianteServiceMock.Object);
+        _controller = new EstudiantesController(_estudianteServiceMock.Object, controllerService);
 
         SeedTestData();
     }

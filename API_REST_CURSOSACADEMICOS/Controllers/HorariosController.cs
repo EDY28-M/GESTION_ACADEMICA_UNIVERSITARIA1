@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 
@@ -17,12 +12,12 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
     public class HorariosController : ControllerBase
     {
         private readonly IHorarioService _horarioService;
-        private readonly GestionAcademicaContext _context;
+        private readonly IUserLookupService _userLookupService;
 
-        public HorariosController(IHorarioService horarioService, GestionAcademicaContext context)
+        public HorariosController(IHorarioService horarioService, IUserLookupService userLookupService)
         {
             _horarioService = horarioService;
-            _context = context;
+            _userLookupService = userLookupService;
         }
 
         [HttpPost]
@@ -90,13 +85,13 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             {
                 if (string.IsNullOrEmpty(email)) return Unauthorized();
 
-                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Correo == email);
-                if (docente == null)
+                var docenteId = await _userLookupService.GetDocenteIdByEmailAsync(email);
+                if (!docenteId.HasValue)
                 {
                     return NotFound(new { message = "Perfil de docente no encontrado para este usuario." });
                 }
 
-                var horarios = await _horarioService.ObtenerPorDocenteAsync(docente.Id);
+                var horarios = await _horarioService.ObtenerPorDocenteAsync(docenteId.Value);
                 return Ok(horarios);
             }
             else if (role == "Estudiante")
@@ -106,22 +101,19 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     return Unauthorized();
                 }
 
-                var estudiante = await _context.Estudiantes.FirstOrDefaultAsync(e => e.IdUsuario == userId);
-                if (estudiante == null)
+                var estudianteId = await _userLookupService.GetEstudianteIdByUsuarioIdAsync(userId);
+                if (!estudianteId.HasValue && !string.IsNullOrEmpty(email))
                 {
-                    // Intentar buscar por email si IdUsuario no está seteado (caso legacy o error)
-                    if (!string.IsNullOrEmpty(email))
-                    {
-                        estudiante = await _context.Estudiantes.FirstOrDefaultAsync(e => e.Correo == email);
-                    }
+                    // Fallback por email si IdUsuario no está seteado (caso legacy o error)
+                    estudianteId = await _userLookupService.GetEstudianteIdByEmailAsync(email);
                 }
 
-                if (estudiante == null)
+                if (!estudianteId.HasValue)
                 {
                     return NotFound(new { message = "Perfil de estudiante no encontrado para este usuario." });
                 }
 
-                var horarios = await _horarioService.ObtenerPorEstudianteAsync(estudiante.Id);
+                var horarios = await _horarioService.ObtenerPorEstudianteAsync(estudianteId.Value);
                 return Ok(horarios);
             }
 

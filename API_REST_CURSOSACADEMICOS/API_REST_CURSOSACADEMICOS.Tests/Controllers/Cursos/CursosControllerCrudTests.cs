@@ -7,6 +7,7 @@ using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
@@ -23,7 +24,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new CursosController(_context);
+            _controller = new CursosController(new CursosService(_context));
         }
 
         private void SetupAdminUser()
@@ -48,7 +49,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             {
                 Id = 1,
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Profesion = "Ingeniero"
             };
             await _context.Docentes.AddAsync(docente);
@@ -65,7 +66,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var cursoDto = new CursoCreateDto
             {
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 HorasTeoria = 4,
@@ -82,7 +83,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var createdResult = result.Result.Should().BeOfType<CreatedAtActionResult>().Subject;
             var curso = createdResult.Value.Should().BeOfType<CursoDto>().Subject;
             curso.Codigo.Should().Be("MAT101");
-            curso.NombreCurso.Should().Be("Matemáticas I");
+            curso.NombreCurso.Should().Be("Matemï¿½ticas I");
         }
 
         [Fact]
@@ -94,7 +95,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var cursoDto = new CursoCreateDto
             {
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,
@@ -119,7 +120,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var cursoDto = new CursoCreateDto
             {
                 Codigo = "MAT201",
-                NombreCurso = "Matemáticas II",
+                NombreCurso = "Matemï¿½ticas II",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 2,
@@ -146,7 +147,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,
@@ -158,7 +159,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var cursoDto = new CursoCreateDto
             {
                 Codigo = "MAT201",
-                NombreCurso = "Matemáticas II",
+                NombreCurso = "Matemï¿½ticas II",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 2,
@@ -186,7 +187,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,
@@ -198,7 +199,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             var updateDto = new CursoUpdateDto
             {
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I Actualizado",
+                NombreCurso = "Matemï¿½ticas I Actualizado",
                 Creditos = 5,
                 HorasSemanal = 8,
                 Ciclo = 1,
@@ -213,7 +214,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             result.Should().BeOfType<NoContentResult>();
             
             var updatedCurso = await _context.Cursos.FindAsync(1);
-            updatedCurso!.NombreCurso.Should().Be("Matemáticas I Actualizado");
+            updatedCurso!.NombreCurso.Should().Be("Matemï¿½ticas I Actualizado");
             updatedCurso.Creditos.Should().Be(5);
         }
 
@@ -251,7 +252,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using API_REST_CURSOSACADEMICOS.Data;
+using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 
 namespace API_REST_CURSOSACADEMICOS.Controllers
 {
@@ -9,12 +8,12 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
     [Route("[controller]")]
     public class HealthController : ControllerBase
     {
-        private readonly GestionAcademicaContext _context;
+        private readonly IHealthService _healthService;
         private readonly ILogger<HealthController> _logger;
 
-        public HealthController(GestionAcademicaContext context, ILogger<HealthController> logger)
+        public HealthController(IHealthService healthService, ILogger<HealthController> logger)
         {
-            _context = context;
+            _healthService = healthService;
             _logger = logger;
         }
 
@@ -72,16 +71,15 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 // Database connectivity check
                 try
                 {
-                    var dbCanConnect = await _context.Database.CanConnectAsync();
-                    if (dbCanConnect)
+                    var dbInfo = await _healthService.GetDatabaseInfoAsync();
+                    if (dbInfo.CanConnect)
                     {
-                        var userCount = await _context.Usuarios.CountAsync();
                         healthChecks["database"] = new
                         {
                             status = "Healthy",
                             canConnect = true,
-                            userCount = userCount,
-                            connectionString = _context.Database.GetConnectionString()?.Substring(0, 50) + "..."
+                            userCount = dbInfo.UserCount,
+                            connectionString = dbInfo.ConnectionStringPreview
                         };
                     }
                     else
@@ -152,7 +150,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
             try
             {
                 // Check if database is accessible
-                var canConnect = await _context.Database.CanConnectAsync();
+                var canConnect = await _healthService.CanConnectDbAsync();
                 
                 if (canConnect)
                 {

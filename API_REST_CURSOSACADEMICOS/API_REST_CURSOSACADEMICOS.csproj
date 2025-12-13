@@ -16,6 +16,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="API_REST_CURSOSACADEMICOS.Domain\**" />
+    <Content Remove="API_REST_CURSOSACADEMICOS.Domain\**" />
+    <EmbeddedResource Remove="API_REST_CURSOSACADEMICOS.Domain\**" />
+    <None Remove="API_REST_CURSOSACADEMICOS.Domain\**" />
+
+    <Compile Remove="API_REST_CURSOSACADEMICOS.Application\**" />
+    <Content Remove="API_REST_CURSOSACADEMICOS.Application\**" />
+    <EmbeddedResource Remove="API_REST_CURSOSACADEMICOS.Application\**" />
+    <None Remove="API_REST_CURSOSACADEMICOS.Application\**" />
+
+    <Compile Remove="API_REST_CURSOSACADEMICOS.Infrastructure\**" />
+    <Content Remove="API_REST_CURSOSACADEMICOS.Infrastructure\**" />
+    <EmbeddedResource Remove="API_REST_CURSOSACADEMICOS.Infrastructure\**" />
+    <None Remove="API_REST_CURSOSACADEMICOS.Infrastructure\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include=".github\workflows\deploy-gcp.yml" />
   </ItemGroup>
 
@@ -33,6 +50,11 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="API_REST_CURSOSACADEMICOS.Application\API_REST_CURSOSACADEMICOS.Application.csproj" />
+    <ProjectReference Include="API_REST_CURSOSACADEMICOS.Infrastructure\API_REST_CURSOSACADEMICOS.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

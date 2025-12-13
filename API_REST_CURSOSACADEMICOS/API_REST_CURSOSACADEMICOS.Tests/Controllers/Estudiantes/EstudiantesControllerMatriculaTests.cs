@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new EstudiantesController(_mockEstudianteService.Object, _context);
+            var controllerService = new EstudiantesControllerService(_context, _mockEstudianteService.Object);
+            _controller = new EstudiantesController(_mockEstudianteService.Object, controllerService);
         }
 
         private void SetupEstudianteUser(int userId)
@@ -56,7 +58,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes
             var periodoDto = new PeriodoDto { Id = 1, Nombre = "2024-I" };
             var cursosDisponibles = new List<CursoDisponibleDto>
             {
-                new CursoDisponibleDto { Id = 1, Codigo = "MAT101", NombreCurso = "Matemáticas" }
+                new CursoDisponibleDto { Id = 1, Codigo = "MAT101", NombreCurso = "Matemï¿½ticas" }
             };
 
             _mockEstudianteService.Setup(s => s.GetByUsuarioIdAsync(1)).ReturnsAsync(estudianteDto);
@@ -99,7 +101,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes
             var estudianteDto = new EstudianteDto { Id = 1 };
             var matriculas = new List<MatriculaDto>
             {
-                new MatriculaDto { Id = 1, NombreCurso = "Matemáticas", Estado = "Matriculado" }
+                new MatriculaDto { Id = 1, NombreCurso = "Matemï¿½ticas", Estado = "Matriculado" }
             };
 
             _mockEstudianteService.Setup(s => s.GetByUsuarioIdAsync(1)).ReturnsAsync(estudianteDto);

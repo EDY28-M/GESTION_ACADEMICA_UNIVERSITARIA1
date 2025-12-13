@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new AdminController(_mockEstudianteService.Object, _context);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            _controller = new AdminController(adminService);
         }
 
         private void SetupAdminUser()
@@ -68,7 +70,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Id = 1,
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Profesion = "Ingeniero",
                 Correo = "juan@test.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
@@ -113,8 +115,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
 
             var dto = new CrearDocenteConPasswordDto
             {
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 Profesion = "Licenciada",
                 Correo = "maria@test.com",
                 Password = "password123"
@@ -139,8 +141,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
 
             var dto = new CrearDocenteConPasswordDto
             {
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 Profesion = "Licenciada",
                 Correo = "juan@test.com", // Ya existe
                 Password = "password123"
@@ -161,8 +163,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
 
             var dto = new CrearDocenteConPasswordDto
             {
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 Profesion = "Licenciada",
                 Correo = "maria@test.com",
                 Password = "12345" // Menos de 6 caracteres
@@ -185,7 +187,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             var dto = new ActualizarDocenteDto
             {
                 Nombres = "Juan Carlos",
-                Apellidos = "Pérez López",
+                Apellidos = "Pï¿½rez Lï¿½pez",
                 Profesion = "Doctor",
                 Correo = "juancarlos@test.com"
             };
@@ -317,7 +319,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,

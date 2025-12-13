@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new EstudiantesController(_mockEstudianteService.Object, _context);
+            var controllerService = new EstudiantesControllerService(_context, _mockEstudianteService.Object);
+            _controller = new EstudiantesController(_mockEstudianteService.Object, controllerService);
         }
 
         private void SetupEstudianteUser(int userId)

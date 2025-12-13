@@ -8,8 +8,6 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
-using API_REST_CURSOSACADEMICOS.Data;
-using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Auth
@@ -18,8 +16,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Auth
     {
         private readonly Mock<IAuthService> _mockAuthService;
         private readonly Mock<ILogger<AuthController>> _mockLogger;
-        private readonly GestionAcademicaContext _context;
         private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly Mock<IUserLookupService> _mockUserLookupService;
         private readonly AuthController _controller;
 
         public AuthControllerTokenTests()
@@ -27,17 +25,13 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Auth
             _mockAuthService = new Mock<IAuthService>();
             _mockLogger = new Mock<ILogger<AuthController>>();
             _mockConfiguration = new Mock<IConfiguration>();
-
-            var options = new DbContextOptionsBuilder<GestionAcademicaContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-            _context = new GestionAcademicaContext(options);
+            _mockUserLookupService = new Mock<IUserLookupService>();
 
             _controller = new AuthController(
                 _mockAuthService.Object,
                 _mockLogger.Object,
-                _context,
-                _mockConfiguration.Object
+                _mockConfiguration.Object,
+                _mockUserLookupService.Object
             );
         }
 

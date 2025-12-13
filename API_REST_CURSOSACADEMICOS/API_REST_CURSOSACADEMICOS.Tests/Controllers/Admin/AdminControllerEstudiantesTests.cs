@@ -6,6 +6,7 @@ using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new AdminController(_mockEstudianteService.Object, _context);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            _controller = new AdminController(adminService);
         }
 
         private void SetupAdminUser()
@@ -71,7 +73,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 PasswordHash = "hash",
                 Rol = "Estudiante",
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Estado = true
             };
             await _context.Usuarios.AddAsync(usuario);
@@ -82,12 +84,12 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 IdUsuario = 1,
                 Codigo = "EST001",
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Dni = "12345678",
                 Correo = "estudiante@test.com",
                 CicloActual = 3,
                 Estado = "Activo",
-                Carrera = "Ingeniería de Sistemas"
+                Carrera = "Ingenierï¿½a de Sistemas"
             };
             await _context.Estudiantes.AddAsync(estudiante);
             await _context.SaveChangesAsync();
@@ -157,8 +159,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Email = "nuevo@test.com",
                 Password = "password123",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 NumeroDocumento = "87654321",
                 Ciclo = 1
             };
@@ -181,8 +183,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Email = "estudiante@test.com", // Email ya existe
                 Password = "password123",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 NumeroDocumento = "87654321",
                 Ciclo = 1
             };
@@ -205,8 +207,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             {
                 Email = "nuevo@test.com",
                 Password = "password123",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 NumeroDocumento = "12345678", // DNI ya existe
                 Ciclo = 1
             };

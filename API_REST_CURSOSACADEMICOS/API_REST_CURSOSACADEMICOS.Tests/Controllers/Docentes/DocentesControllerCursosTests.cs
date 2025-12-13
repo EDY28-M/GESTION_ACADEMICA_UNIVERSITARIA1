@@ -8,6 +8,7 @@ using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new DocentesController(_context, _mockLogger.Object);
+            var docentesService = new DocentesService(_context);
+            _controller = new DocentesController(docentesService, _mockLogger.Object);
         }
 
         private void SetupDocenteUser(int docenteId)
@@ -79,7 +81,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             {
                 Id = 1,
                 Nombres = "Juan",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Profesion = "Ingeniero",
                 Correo = "juan@test.com"
             };
@@ -89,7 +91,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             {
                 Id = 1,
                 Codigo = "MAT101",
-                NombreCurso = "Matemáticas I",
+                NombreCurso = "Matemï¿½ticas I",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,
@@ -101,8 +103,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             {
                 Id = 1,
                 Codigo = "EST001",
-                Nombres = "María",
-                Apellidos = "García",
+                Nombres = "Marï¿½a",
+                Apellidos = "Garcï¿½a",
                 CicloActual = 1
             };
             await _context.Estudiantes.AddAsync(estudiante);
@@ -135,7 +137,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
             var cursos = okResult.Value.Should().BeAssignableTo<List<CursoDocenteDto>>().Subject;
             cursos.Should().HaveCount(1);
-            cursos[0].NombreCurso.Should().Be("Matemáticas I");
+            cursos[0].NombreCurso.Should().Be("Matemï¿½ticas I");
         }
 
         [Fact]
@@ -218,7 +220,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             _context.Cursos.Add(new Curso
             {
                 Id = 2,
-                NombreCurso = "Física",
+                NombreCurso = "Fï¿½sica",
                 Creditos = 4,
                 HorasSemanal = 6,
                 Ciclo = 1,

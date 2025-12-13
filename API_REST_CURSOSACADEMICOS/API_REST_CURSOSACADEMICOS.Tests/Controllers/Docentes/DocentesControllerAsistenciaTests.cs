@@ -8,6 +8,7 @@ using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes;
 
@@ -36,7 +37,8 @@ public class DocentesControllerAsistenciaTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _loggerMock = new Mock<ILogger<DocentesController>>();
-        _controller = new DocentesController(_context, _loggerMock.Object);
+        var docentesService = new DocentesService(_context);
+        _controller = new DocentesController(docentesService, _loggerMock.Object);
 
         SeedTestData();
     }

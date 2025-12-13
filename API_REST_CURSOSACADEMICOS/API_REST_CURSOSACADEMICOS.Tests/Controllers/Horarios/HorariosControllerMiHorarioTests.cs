@@ -1,13 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Moq;
 using FluentAssertions;
 using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
-using API_REST_CURSOSACADEMICOS.Data;
-using API_REST_CURSOSACADEMICOS.Models;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
@@ -15,19 +12,14 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
     public class HorariosControllerMiHorarioTests
     {
         private readonly Mock<IHorarioService> _mockHorarioService;
-        private readonly GestionAcademicaContext _context;
+        private readonly Mock<IUserLookupService> _mockUserLookupService;
         private readonly HorariosController _controller;
 
         public HorariosControllerMiHorarioTests()
         {
             _mockHorarioService = new Mock<IHorarioService>();
-            
-            var options = new DbContextOptionsBuilder<GestionAcademicaContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-            
-            _context = new GestionAcademicaContext(options);
-            _controller = new HorariosController(_mockHorarioService.Object, _context);
+            _mockUserLookupService = new Mock<IUserLookupService>();
+            _controller = new HorariosController(_mockHorarioService.Object, _mockUserLookupService.Object);
         }
 
         private void SetupDocenteUser(string email)
@@ -82,44 +74,18 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
             };
         }
 
-        private async Task SeedDocente()
-        {
-            var docente = new Docente
-            {
-                Id = 1,
-                Nombres = "Juan",
-                Apellidos = "Pérez",
-                Correo = "docente@test.com"
-            };
-            await _context.Docentes.AddAsync(docente);
-            await _context.SaveChangesAsync();
-        }
-
-        private async Task SeedEstudiante()
-        {
-            var estudiante = new Estudiante
-            {
-                Id = 1,
-                Codigo = "EST001",
-                Nombres = "María",
-                Apellidos = "García",
-                IdUsuario = 1,
-                Correo = "estudiante@test.com"
-            };
-            await _context.Estudiantes.AddAsync(estudiante);
-            await _context.SaveChangesAsync();
-        }
-
         [Fact]
         public async Task GetMiHorario_AsDocente_ReturnsHorarios()
         {
             // Arrange
-            await SeedDocente();
             SetupDocenteUser("docente@test.com");
+            _mockUserLookupService
+                .Setup(s => s.GetDocenteIdByEmailAsync("docente@test.com"))
+                .ReturnsAsync(1);
 
             var horarios = new List<HorarioDto>
             {
-                new HorarioDto { Id = 1, NombreCurso = "Matemáticas", DiaSemanaTexto = "Lunes" }
+                new HorarioDto { Id = 1, NombreCurso = "Matemï¿½ticas", DiaSemanaTexto = "Lunes" }
             };
 
             _mockHorarioService.Setup(s => s.ObtenerPorDocenteAsync(1)).ReturnsAsync(horarios);
@@ -138,6 +104,9 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
         {
             // Arrange
             SetupDocenteUser("notfound@test.com");
+            _mockUserLookupService
+                .Setup(s => s.GetDocenteIdByEmailAsync("notfound@test.com"))
+                .ReturnsAsync((int?)null);
 
             // Act
             var result = await _controller.GetMiHorario();
@@ -150,13 +119,15 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
         public async Task GetMiHorario_AsEstudiante_ReturnsHorarios()
         {
             // Arrange
-            await SeedEstudiante();
             SetupEstudianteUser(1);
+            _mockUserLookupService
+                .Setup(s => s.GetEstudianteIdByUsuarioIdAsync(1))
+                .ReturnsAsync(1);
 
             var horarios = new List<HorarioDto>
             {
-                new HorarioDto { Id = 1, NombreCurso = "Matemáticas", DiaSemanaTexto = "Lunes" },
-                new HorarioDto { Id = 2, NombreCurso = "Física", DiaSemanaTexto = "Martes" }
+                new HorarioDto { Id = 1, NombreCurso = "Matemï¿½ticas", DiaSemanaTexto = "Lunes" },
+                new HorarioDto { Id = 2, NombreCurso = "Fï¿½sica", DiaSemanaTexto = "Martes" }
             };
 
             _mockHorarioService.Setup(s => s.ObtenerPorEstudianteAsync(1)).ReturnsAsync(horarios);
@@ -175,6 +146,9 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
         {
             // Arrange
             SetupEstudianteUser(999);
+            _mockUserLookupService
+                .Setup(s => s.GetEstudianteIdByUsuarioIdAsync(999))
+                .ReturnsAsync((int?)null);
 
             // Act
             var result = await _controller.GetMiHorario();
@@ -224,23 +198,17 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Horarios
         public async Task GetMiHorario_AsEstudiante_FallbackToEmail_ReturnsHorarios()
         {
             // Arrange
-            var estudiante = new Estudiante
-            {
-                Id = 2,
-                Codigo = "EST002",
-                Nombres = "Pedro",
-                Apellidos = "López",
-                Correo = "pedro@test.com"
-                // IdUsuario is null or 0
-            };
-            await _context.Estudiantes.AddAsync(estudiante);
-            await _context.SaveChangesAsync();
-
-            SetupEstudianteUser(999, "pedro@test.com"); // userId no encontrado pero email sí
+            SetupEstudianteUser(999, "pedro@test.com"); // userId no encontrado pero email sï¿½
+            _mockUserLookupService
+                .Setup(s => s.GetEstudianteIdByUsuarioIdAsync(999))
+                .ReturnsAsync((int?)null);
+            _mockUserLookupService
+                .Setup(s => s.GetEstudianteIdByEmailAsync("pedro@test.com"))
+                .ReturnsAsync(2);
 
             var horarios = new List<HorarioDto>
             {
-                new HorarioDto { Id = 1, NombreCurso = "Matemáticas" }
+                new HorarioDto { Id = 1, NombreCurso = "Matemï¿½ticas" }
             };
 
             _mockHorarioService.Setup(s => s.ObtenerPorEstudianteAsync(2)).ReturnsAsync(horarios);

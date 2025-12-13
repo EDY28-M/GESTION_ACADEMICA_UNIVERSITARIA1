@@ -6,6 +6,7 @@ using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Cursos;
 
@@ -28,7 +29,7 @@ public class CursosControllerFiltrosTests : IDisposable
             .Options;
 
         _context = new GestionAcademicaContext(options);
-        _controller = new CursosController(_context);
+        _controller = new CursosController(new CursosService(_context));
 
         SeedTestData();
     }

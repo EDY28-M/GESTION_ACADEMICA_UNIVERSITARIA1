@@ -8,6 +8,7 @@ using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using API_REST_CURSOSACADEMICOS.Services;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Estudiantes;
 
@@ -34,7 +35,8 @@ public class EstudiantesControllerPerfilUpdateTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _estudianteServiceMock = new Mock<IEstudianteService>();
-        _controller = new EstudiantesController(_estudianteServiceMock.Object, _context);
+        var controllerService = new EstudiantesControllerService(_context, _estudianteServiceMock.Object);
+        _controller = new EstudiantesController(_estudianteServiceMock.Object, controllerService);
 
         SeedTestData();
     }
@@ -349,6 +351,10 @@ public class EstudiantesControllerPerfilUpdateTests : IDisposable
     {
         // Arrange
         SetupEstudianteAuthentication();
+
+        _estudianteServiceMock
+            .Setup(s => s.GetByUsuarioIdAsync(TestUsuarioId))
+            .ReturnsAsync(new EstudianteDto { Id = TestEstudianteId, Codigo = "2024001", Nombres = "María", Apellidos = "García", CicloActual = 3 });
         
         _estudianteServiceMock
             .Setup(s => s.GetRegistroNotasAsync(TestEstudianteId))
@@ -386,6 +392,10 @@ public class EstudiantesControllerPerfilUpdateTests : IDisposable
     {
         // Arrange
         SetupEstudianteAuthentication();
+
+        _estudianteServiceMock
+            .Setup(s => s.GetByUsuarioIdAsync(TestUsuarioId))
+            .ReturnsAsync(new EstudianteDto { Id = TestEstudianteId, Codigo = "2024001", Nombres = "María", Apellidos = "García", CicloActual = 3 });
         
         var semestreRegistro = new SemestreRegistroDto
         {
@@ -418,6 +428,10 @@ public class EstudiantesControllerPerfilUpdateTests : IDisposable
     {
         // Arrange
         SetupEstudianteAuthentication();
+
+        _estudianteServiceMock
+            .Setup(s => s.GetByUsuarioIdAsync(TestUsuarioId))
+            .ReturnsAsync(new EstudianteDto { Id = TestEstudianteId, Codigo = "2024001", Nombres = "María", Apellidos = "García", CicloActual = 3 });
         
         _estudianteServiceMock
             .Setup(s => s.GetRegistroNotasAsync(TestEstudianteId))

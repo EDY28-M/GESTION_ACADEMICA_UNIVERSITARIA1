@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.Hubs;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
@@ -28,7 +29,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new NotificacionesController(_context, _mockHubContext.Object);
+            _controller = new NotificacionesController(new NotificacionesService(_context), _mockHubContext.Object);
         }
 
         private void SetupUser(int userId)
@@ -56,7 +57,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                     Id = 1,
                     Tipo = "info",
                     Accion = "matricula",
-                    Mensaje = "Matrícula realizada",
+                    Mensaje = "Matrï¿½cula realizada",
                     IdUsuario = 1,
                     FechaCreacion = DateTime.Now,
                     Leida = false
@@ -77,7 +78,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                     Tipo = "global",
                     Accion = "anuncio",
                     Mensaje = "Anuncio global",
-                    IdUsuario = null, // Notificación global
+                    IdUsuario = null, // Notificaciï¿½n global
                     FechaCreacion = DateTime.Now.AddHours(-2),
                     Leida = false
                 },
@@ -86,7 +87,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
                     Id = 4,
                     Tipo = "info",
                     Accion = "otro",
-                    Mensaje = "Notificación de otro usuario",
+                    Mensaje = "Notificaciï¿½n de otro usuario",
                     IdUsuario = 2,
                     FechaCreacion = DateTime.Now,
                     Leida = false
@@ -110,10 +111,10 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
             // Assert
             var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
             var notificaciones = okResult.Value.Should().BeAssignableTo<List<NotificacionDto>>().Subject;
-            // Debería devolver 3: 2 del usuario 1 + 1 global
+            // Deberï¿½a devolver 3: 2 del usuario 1 + 1 global
             notificaciones.Should().HaveCount(3);
             notificaciones.Should().Contain(n => n.Tipo == "global"); // Global notification
-            notificaciones.Should().NotContain(n => n.Mensaje == "Notificación de otro usuario");
+            notificaciones.Should().NotContain(n => n.Mensaje == "Notificaciï¿½n de otro usuario");
         }
 
         [Fact]
@@ -162,7 +163,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Notificaciones
 
             // Assert
             var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-            // El usuario 1 tiene 1 no leída + 1 global no leída = 2
+            // El usuario 1 tiene 1 no leï¿½da + 1 global no leï¿½da = 2
         }
 
         [Fact]

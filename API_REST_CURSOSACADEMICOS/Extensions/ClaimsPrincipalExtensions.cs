@@ -24,4 +24,23 @@ public static class ClaimsPrincipalExtensions
 
         return int.TryParse(value, out userId);
     }
+
+    public static bool TryGetDocenteId(this ClaimsPrincipal? user, out int docenteId)
+    {
+        docenteId = default;
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        // Normalizar: algunos tokens usan "DocenteId" y otros "docenteId"
+        var value = user.FindFirst("DocenteId")?.Value;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            value = user.FindFirst("docenteId")?.Value;
+        }
+
+        return int.TryParse(value, out docenteId);
+    }
 }

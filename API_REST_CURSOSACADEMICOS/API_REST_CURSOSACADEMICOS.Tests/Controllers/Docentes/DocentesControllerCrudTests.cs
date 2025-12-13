@@ -8,6 +8,7 @@ using API_REST_CURSOSACADEMICOS.Controllers;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
+using API_REST_CURSOSACADEMICOS.Services;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
@@ -27,7 +28,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            _controller = new DocentesController(_context, _mockLogger.Object);
+            var docentesService = new DocentesService(_context);
+            _controller = new DocentesController(docentesService, _mockLogger.Object);
         }
 
         private void SetupAdminUser()
@@ -54,16 +56,16 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
                 {
                     Id = 1,
                     Nombres = "Juan",
-                    Apellidos = "Pérez",
+                    Apellidos = "Pï¿½rez",
                     Profesion = "Ingeniero de Sistemas",
                     Correo = "juan.perez@test.com"
                 },
                 new Docente
                 {
                     Id = 2,
-                    Nombres = "María",
-                    Apellidos = "García",
-                    Profesion = "Matemática",
+                    Nombres = "Marï¿½a",
+                    Apellidos = "Garcï¿½a",
+                    Profesion = "Matemï¿½tica",
                     Correo = "maria.garcia@test.com"
                 }
             };
@@ -126,7 +128,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             var docenteDto = new DocenteCreateDto
             {
                 Nombres = "Carlos",
-                Apellidos = "López",
+                Apellidos = "Lï¿½pez",
                 Profesion = "Ingeniero Civil",
                 Correo = "carlos.lopez@test.com"
             };
@@ -150,7 +152,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             var docenteDto = new DocenteCreateDto
             {
                 Nombres = "Carlos",
-                Apellidos = "López",
+                Apellidos = "Lï¿½pez",
                 Correo = "juan.perez@test.com" // Email duplicado
             };
 
@@ -171,7 +173,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             var updateDto = new DocenteUpdateDto
             {
                 Nombres = "Juan Carlos",
-                Apellidos = "Pérez",
+                Apellidos = "Pï¿½rez",
                 Profesion = "Ingeniero de Software",
                 Correo = "juan.perez@test.com"
             };
@@ -242,7 +244,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
             _context.Cursos.Add(new Curso
             {
                 Id = 1,
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 Creditos = 4,
                 HorasSemanal = 4,
                 Ciclo = 1,
