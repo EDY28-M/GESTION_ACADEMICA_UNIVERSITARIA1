@@ -480,7 +480,7 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                     });
                 }
 
-                var result = await passwordResetService.RequestPasswordResetAsync(request.Email);
+                var result = await passwordResetService.RequestPasswordResetAsync(request.Email, request.TipoUsuario);
 
                 // Siempre devolver 200 para no revelar si el email existe
                 return Ok(result);

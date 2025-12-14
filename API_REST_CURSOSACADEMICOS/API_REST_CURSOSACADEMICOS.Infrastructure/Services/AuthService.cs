@@ -46,6 +46,31 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     return null;
                 }
 
+                // Validar que el rol del usuario coincida con el tipo solicitado (si se especifica)
+                if (!string.IsNullOrWhiteSpace(loginDto.TipoUsuario))
+                {
+                    var tipoSolicitado = loginDto.TipoUsuario.Trim();
+                    var rolUsuario = usuario.Rol?.Trim() ?? "";
+                    
+                    // Normalizar comparación
+                    bool rolCoincide = false;
+                    if (tipoSolicitado.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || 
+                        tipoSolicitado.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rolCoincide = rolUsuario.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
+                    }
+                    else if (tipoSolicitado.Equals("Estudiante", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rolCoincide = rolUsuario.Equals("Estudiante", StringComparison.OrdinalIgnoreCase);
+                    }
+                    
+                    if (!rolCoincide)
+                    {
+                        _logger.LogWarning($"Intento de login fallido: Usuario {loginDto.Email} tiene rol '{rolUsuario}' pero se solicitó '{tipoSolicitado}'");
+                        return null;
+                    }
+                }
+
                 // Verificar contraseña con BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, usuario.PasswordHash))
                 {

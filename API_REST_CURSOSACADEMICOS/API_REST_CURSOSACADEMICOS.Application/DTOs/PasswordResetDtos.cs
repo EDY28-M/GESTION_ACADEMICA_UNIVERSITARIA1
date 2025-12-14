@@ -10,6 +10,12 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         [Required(ErrorMessage = "El correo electrónico es requerido")]
         [EmailAddress(ErrorMessage = "El formato del correo electrónico no es válido")]
         public string Email { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tipo de usuario: "Usuario" (Admin), "Docente", o "Estudiante"
+        /// Requerido cuando el correo existe en múltiples tipos de cuenta
+        /// </summary>
+        public string? TipoUsuario { get; set; }
     }
 
     /// <summary>

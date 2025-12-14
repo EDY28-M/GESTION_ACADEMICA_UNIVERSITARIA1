@@ -8,7 +8,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
 {
     public interface IPasswordResetService
     {
-        Task<ForgotPasswordResponseDto> RequestPasswordResetAsync(string email);
+        Task<ForgotPasswordResponseDto> RequestPasswordResetAsync(string email, string? tipoUsuario = null);
         Task<ValidateTokenResponseDto> ValidateTokenAsync(string token);
         Task<ResetPasswordResponseDto> ResetPasswordAsync(string token, string newPassword);
     }
@@ -35,7 +35,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
         /// <summary>
         /// Solicita un token de recuperación de contraseña
         /// </summary>
-        public async Task<ForgotPasswordResponseDto> RequestPasswordResetAsync(string email)
+        public async Task<ForgotPasswordResponseDto> RequestPasswordResetAsync(string email, string? tipoUsuarioSolicitado = null)
         {
             try
             {
@@ -46,25 +46,139 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Correo != null && d.Correo.ToLower() == email);
                 var estudiante = await _context.Estudiantes.FirstOrDefaultAsync(e => e.Correo != null && e.Correo.ToLower() == email);
 
+                // Contar cuántas coincidencias hay
+                int coincidencias = 0;
+                if (usuario != null) coincidencias++;
+                if (docente != null) coincidencias++;
+                if (estudiante != null) coincidencias++;
+
                 string tipoUsuario = "";
                 int? idUsuario = null;
                 int? idDocente = null;
                 int? idEstudiante = null;
 
-                if (usuario != null)
+                // Si hay múltiples coincidencias, requerir que se especifique el tipo
+                if (coincidencias > 1)
                 {
-                    tipoUsuario = "Usuario";
-                    idUsuario = usuario.Id;
+                    if (string.IsNullOrWhiteSpace(tipoUsuarioSolicitado))
+                    {
+                        var tiposEncontrados = new List<string>();
+                        if (usuario != null) tiposEncontrados.Add("Administrador");
+                        if (docente != null) tiposEncontrados.Add("Docente");
+                        if (estudiante != null) tiposEncontrados.Add("Estudiante");
+
+                        return new ForgotPasswordResponseDto
+                        {
+                            Success = false,
+                            Message = $"Este correo electrónico está asociado a múltiples cuentas ({string.Join(", ", tiposEncontrados)}). Por favor, especifica el tipo de cuenta desde el portal correspondiente."
+                        };
+                    }
+
+                    // Validar el tipo solicitado
+                    tipoUsuarioSolicitado = tipoUsuarioSolicitado.Trim();
+                    if (tipoUsuarioSolicitado.Equals("Usuario", StringComparison.OrdinalIgnoreCase) || 
+                        tipoUsuarioSolicitado.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || 
+                        tipoUsuarioSolicitado.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (usuario == null)
+                        {
+                            return new ForgotPasswordResponseDto
+                            {
+                                Success = false,
+                                Message = "No se encontró una cuenta de Administrador con este correo electrónico."
+                            };
+                        }
+                        tipoUsuario = "Usuario";
+                        idUsuario = usuario.Id;
+                    }
+                    else if (tipoUsuarioSolicitado.Equals("Docente", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (docente == null)
+                        {
+                            return new ForgotPasswordResponseDto
+                            {
+                                Success = false,
+                                Message = "No se encontró una cuenta de Docente con este correo electrónico."
+                            };
+                        }
+                        tipoUsuario = "Docente";
+                        idDocente = docente.Id;
+                    }
+                    else if (tipoUsuarioSolicitado.Equals("Estudiante", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (estudiante == null)
+                        {
+                            return new ForgotPasswordResponseDto
+                            {
+                                Success = false,
+                                Message = "No se encontró una cuenta de Estudiante con este correo electrónico."
+                            };
+                        }
+                        tipoUsuario = "Estudiante";
+                        idEstudiante = estudiante.Id;
+                    }
+                    else
+                    {
+                        return new ForgotPasswordResponseDto
+                        {
+                            Success = false,
+                            Message = "Tipo de usuario no válido. Debe ser: Administrador, Docente o Estudiante."
+                        };
+                    }
                 }
-                else if (docente != null)
+                else if (coincidencias == 1)
                 {
-                    tipoUsuario = "Docente";
-                    idDocente = docente.Id;
-                }
-                else if (estudiante != null)
-                {
-                    tipoUsuario = "Estudiante";
-                    idEstudiante = estudiante.Id;
+                    // Solo una coincidencia, pero si se especificó un tipo, validarlo
+                    if (!string.IsNullOrWhiteSpace(tipoUsuarioSolicitado))
+                    {
+                        tipoUsuarioSolicitado = tipoUsuarioSolicitado.Trim();
+                        // Validar que el tipo solicitado coincida con el encontrado
+                        if ((tipoUsuarioSolicitado.Equals("Usuario", StringComparison.OrdinalIgnoreCase) || 
+                             tipoUsuarioSolicitado.Equals("Administrador", StringComparison.OrdinalIgnoreCase) || 
+                             tipoUsuarioSolicitado.Equals("Admin", StringComparison.OrdinalIgnoreCase)) && usuario != null)
+                        {
+                            tipoUsuario = "Usuario";
+                            idUsuario = usuario.Id;
+                        }
+                        else if (tipoUsuarioSolicitado.Equals("Docente", StringComparison.OrdinalIgnoreCase) && docente != null)
+                        {
+                            tipoUsuario = "Docente";
+                            idDocente = docente.Id;
+                        }
+                        else if (tipoUsuarioSolicitado.Equals("Estudiante", StringComparison.OrdinalIgnoreCase) && estudiante != null)
+                        {
+                            tipoUsuario = "Estudiante";
+                            idEstudiante = estudiante.Id;
+                        }
+                        else
+                        {
+                            // El tipo solicitado no coincide con el encontrado
+                            return new ForgotPasswordResponseDto
+                            {
+                                Success = false,
+                                Message = $"El tipo de cuenta especificado no coincide con el correo electrónico. Por favor, usa el portal correcto."
+                            };
+                        }
+                    }
+                    else
+                    {
+                        // No se especificó tipo, usar el encontrado
+                        if (usuario != null)
+                        {
+                            tipoUsuario = "Usuario";
+                            idUsuario = usuario.Id;
+                        }
+                        else if (docente != null)
+                        {
+                            tipoUsuario = "Docente";
+                            idDocente = docente.Id;
+                        }
+                        else if (estudiante != null)
+                        {
+                            tipoUsuario = "Estudiante";
+                            idEstudiante = estudiante.Id;
+                        }
+                    }
                 }
                 else
                 {
@@ -113,7 +227,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 else if (estudiante != null) userName = $"{estudiante.Nombres} {estudiante.Apellidos}";
 
                 // Enviar email de recuperación
-                var emailEnviado = await _emailService.SendPasswordResetEmailAsync(email, nuevoToken, userName);
+                var emailEnviado = await _emailService.SendPasswordResetEmailAsync(email, nuevoToken, userName, tipoUsuario);
 
                 _logger.LogInformation(
                     "Token de recuperación generado para {Email} (expira: {Expiracion}) - Email enviado: {Enviado}",
@@ -121,10 +235,24 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
                 var exposeToken = ShouldExposeResetToken();
 
+                // Si el email no se pudo enviar pero estamos en modo desarrollo, aún devolver éxito
+                // En producción, deberíamos informar al usuario
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                var isDevelopment = string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase);
+
+                if (!emailEnviado && !isDevelopment)
+                {
+                    _logger.LogWarning("⚠️ El token se generó pero el email no se pudo enviar para {Email}", email);
+                    // Aún así devolvemos éxito para no revelar si el email existe
+                    // Pero el usuario debería verificar su configuración de email
+                }
+
                 return new ForgotPasswordResponseDto
                 {
                     Success = true,
-                    Message = "¡Instrucciones enviadas! Por favor, revisa tu bandeja de entrada (y la carpeta de spam).",
+                    Message = emailEnviado 
+                        ? "¡Instrucciones enviadas! Por favor, revisa tu bandeja de entrada (y la carpeta de spam)."
+                        : "Token generado. Si no recibes el email, verifica la configuración del servidor SMTP.",
                     Email = MaskEmail(email),
                     Token = exposeToken ? nuevoToken : null
                 };
@@ -392,7 +520,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
         private async Task SimularEnvioEmail(string email, string token)
         {
             // Construir URL de reset (ajustar según tu frontend)
-            var frontendUrl = _configuration["FrontendUrl"] ?? "http://localhost:3000";
+            var frontendUrl = _configuration["AppSettings:FrontendUrl"] ?? "http://localhost:3000";
             var resetUrl = $"{frontendUrl}/reset-password?token={token}";
 
             _logger.LogInformation(

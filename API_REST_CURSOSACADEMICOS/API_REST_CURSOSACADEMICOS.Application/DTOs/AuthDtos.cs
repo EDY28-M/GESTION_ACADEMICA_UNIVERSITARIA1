@@ -18,6 +18,12 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         [Required(ErrorMessage = "La contraseña es requerida")]
         [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
         public string Password { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tipo de usuario esperado: "Administrador" o "Estudiante". 
+        /// Si se proporciona, el backend validará que el usuario tenga ese rol específico.
+        /// </summary>
+        public string? TipoUsuario { get; set; }
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Mail;
 
@@ -31,21 +32,53 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 var password = _configuration["EmailSettings:Password"];
                 var enableSsl = bool.Parse(_configuration["EmailSettings:EnableSsl"] ?? "true");
 
-                if (string.IsNullOrEmpty(password) || password == "TU_CONTRASEÑA_DE_APLICACION_AQUI")
+                // Validar configuración básica
+                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(senderEmail))
                 {
-                    _logger.LogWarning("⚠️ Email no configurado. Configure EmailSettings:Password en appsettings.json");
+                    _logger.LogWarning("⚠️ Email no configurado correctamente. Configure EmailSettings en appsettings.json");
                     _logger.LogInformation($"📧 [SIMULADO] Email para: {toEmail}");
                     _logger.LogInformation($"📧 [SIMULADO] Asunto: {subject}");
                     return true; // Simular éxito en desarrollo
                 }
 
+                // Si no hay contraseña configurada, simular envío (modo desarrollo)
+                if (string.IsNullOrEmpty(password) || 
+                    password == "CHANGE_ME_APP_PASSWORD" || 
+                    password == "TU_CONTRASEÑA_DE_APLICACION_AQUI")
+                {
+                    _logger.LogWarning("⚠️ Email no configurado. Configure EmailSettings:Password en appsettings.json");
+                    _logger.LogInformation($"📧 [SIMULADO] Email para: {toEmail}");
+                    _logger.LogInformation($"📧 [SIMULADO] Asunto: {subject}");
+                    _logger.LogInformation($"📧 [SIMULADO] Para configurar Gmail:");
+                    _logger.LogInformation($"   1. Ve a tu cuenta de Google -> Seguridad");
+                    _logger.LogInformation($"   2. Habilita 'Verificación en 2 pasos'");
+                    _logger.LogInformation($"   3. Genera una 'Contraseña de aplicación'");
+                    _logger.LogInformation($"   4. Usa esa contraseña en EmailSettings:Password");
+                    return true; // Simular éxito en desarrollo
+                }
+
+                // Configurar cliente SMTP con soporte para STARTTLS
                 using var client = new SmtpClient(smtpServer, smtpPort)
                 {
                     Credentials = new NetworkCredential(senderEmail, password),
                     EnableSsl = enableSsl,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Timeout = 30000
+                    Timeout = 30000,
+                    UseDefaultCredentials = false
                 };
+
+                // Para Gmail, asegurar que se use STARTTLS correctamente
+                if (smtpServer?.Contains("gmail.com") == true && smtpPort == 587)
+                {
+                    // Gmail requiere STARTTLS en el puerto 587
+                    // EnableSsl = true ya maneja STARTTLS automáticamente
+                    client.EnableSsl = true;
+                }
+                else if (smtpServer?.Contains("gmail.com") == true && smtpPort == 465)
+                {
+                    // Gmail puerto 465 usa SSL/TLS directo
+                    client.EnableSsl = true;
+                }
 
                 using var message = new MailMessage
                 {
@@ -65,11 +98,26 @@ namespace API_REST_CURSOSACADEMICOS.Services
             {
                 _logger.LogError($"❌ Error SMTP al enviar email a {toEmail}: {smtpEx.Message}");
                 _logger.LogError($"   StatusCode: {smtpEx.StatusCode}");
+                
+                // Mensajes más específicos según el error
+                if (smtpEx.StatusCode == SmtpStatusCode.MustIssueStartTlsFirst)
+                {
+                    _logger.LogError($"   💡 Solución: Asegúrate de que EnableSsl esté en 'true' y uses el puerto 587 para Gmail");
+                }
+                else if (smtpEx.Message.Contains("Authentication", StringComparison.OrdinalIgnoreCase) ||
+                         smtpEx.Message.Contains("5.7.0", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogError($"   💡 Solución: Verifica que la contraseña de aplicación sea correcta");
+                    _logger.LogError($"   💡 Para Gmail: Usa una 'Contraseña de aplicación', no tu contraseña normal");
+                    _logger.LogError($"   💡 Pasos: Google Account -> Seguridad -> Verificación en 2 pasos -> Contraseñas de aplicación");
+                }
+                
                 return false;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"❌ Error al enviar email a {toEmail}: {ex.Message}");
+                _logger.LogError($"   StackTrace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -77,10 +125,20 @@ namespace API_REST_CURSOSACADEMICOS.Services
         /// <summary>
         /// Envía el correo de recuperación de contraseña
         /// </summary>
-        public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken, string userName)
+        public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetToken, string userName, string tipoUsuario = "")
         {
-            var frontendUrl = _configuration["AppSettings:FrontendUrl"] ?? "http://localhost:5173";
-            var resetLink = $"{frontendUrl}/reset-password?token={Uri.EscapeDataString(resetToken)}";
+            var frontendUrl = _configuration["AppSettings:FrontendUrl"] ?? "http://localhost:3000";
+            
+            // Construir la URL según el tipo de usuario
+            string resetPath = tipoUsuario switch
+            {
+                "Docente" => "/docente/reset-password",
+                "Estudiante" => "/estudiante/reset-password",
+                "Usuario" => "/admin/reset-password",
+                _ => "/reset-password" // Fallback
+            };
+            
+            var resetLink = $"{frontendUrl}{resetPath}?token={Uri.EscapeDataString(resetToken)}";
 
             var subject = "🔐 Recuperación de Contraseña - Academia Global";
             
