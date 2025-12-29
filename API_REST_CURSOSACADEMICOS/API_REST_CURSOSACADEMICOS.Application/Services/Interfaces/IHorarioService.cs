@@ -12,5 +12,10 @@ namespace API_REST_CURSOSACADEMICOS.Services.Interfaces
         Task<IEnumerable<HorarioDto>> ObtenerPorDocenteAsync(int idDocente);
         Task<IEnumerable<HorarioDto>> ObtenerPorEstudianteAsync(int idEstudiante);
         Task<HorarioConflictoDto> ValidarCruceHorarioAsync(CrearHorarioDto horarioDto, int? idHorarioExcluir = null);
+        
+        // Nuevos métodos para gestión de horarios por docente
+        Task<IEnumerable<DocenteConCursosDto>> ObtenerDocentesConCursosActivosAsync();
+        Task<ResultadoBatchHorariosDto> CrearHorariosBatchAsync(CrearHorariosBatchDto dto);
+        Task<int> EliminarTodosHorariosAsync();
     }
 }

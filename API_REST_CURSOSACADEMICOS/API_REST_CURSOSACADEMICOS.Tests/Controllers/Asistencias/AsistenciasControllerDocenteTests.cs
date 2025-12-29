@@ -67,7 +67,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
                 IdCurso = 1,
                 Fecha = DateTime.Now,
                 Presente = true,
-                TipoClase = "Teoría"
+                TipoClase = "Teorï¿½a"
             };
 
             var asistenciaDto = new AsistenciaDto
@@ -77,7 +77,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
                 IdCurso = 1,
                 Fecha = DateTime.Now,
                 Presente = true,
-                TipoClase = "Teoría"
+                TipoClase = "Teorï¿½a"
             };
 
             _mockAsistenciaService.Setup(s => s.RegistrarAsistenciaAsync(dto))
@@ -104,7 +104,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
                 IdCurso = 1,
                 Fecha = DateTime.Now,
                 Presente = true,
-                TipoClase = "Teoría"
+                TipoClase = "Teorï¿½a"
             };
 
             _mockAsistenciaService.Setup(s => s.RegistrarAsistenciaAsync(dto))
@@ -127,8 +127,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
             {
                 IdCurso = 1,
                 Fecha = DateTime.Now,
-                TipoClase = "Teoría",
-                Asistencias = new List<AsistenciaEstudianteDto>
+                TipoClase = "Teorï¿½a",
+                Estudiantes = new List<AsistenciaEstudianteDto>
                 {
                     new AsistenciaEstudianteDto { IdEstudiante = 1, Presente = true },
                     new AsistenciaEstudianteDto { IdEstudiante = 2, Presente = false }
@@ -160,14 +160,14 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
             var dto = new ActualizarAsistenciaDto
             {
                 Presente = false,
-                Observaciones = "Llegó tarde"
+                Observaciones = "Llegï¿½ tarde"
             };
 
             var asistenciaActualizada = new AsistenciaDto
             {
                 Id = 1,
                 Presente = false,
-                Observaciones = "Llegó tarde"
+                Observaciones = "Llegï¿½ tarde"
             };
 
             _mockAsistenciaService.Setup(s => s.ActualizarAsistenciaAsync(1, dto))
@@ -241,7 +241,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
             var resumen = new ResumenAsistenciaCursoDto
             {
                 IdCurso = 1,
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 TotalEstudiantes = 30,
                 TotalClases = 15,
                 PorcentajeAsistenciaPromedio = 85.5m
@@ -289,7 +289,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
 
             var reporte = new ReporteAsistenciaDto
             {
-                NombreCurso = "Matemáticas",
+                NombreCurso = "Matemï¿½ticas",
                 TotalEstudiantes = 30,
                 TotalClases = 15
             };

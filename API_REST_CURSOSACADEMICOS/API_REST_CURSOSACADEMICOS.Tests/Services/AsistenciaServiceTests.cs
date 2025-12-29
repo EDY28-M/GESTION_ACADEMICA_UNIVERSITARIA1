@@ -152,7 +152,7 @@ public class AsistenciaServiceTests : IDisposable
             IdCurso = 1,
             Fecha = DateTime.Today,
             TipoClase = "Teoria",
-            Asistencias = new List<AsistenciaEstudianteDto>
+            Estudiantes = new List<AsistenciaEstudianteDto>
             {
                 new() { IdEstudiante = 1, Presente = true } // Ahora presente (Update)
             }

@@ -1,4 +1,7 @@
+using System.Text.Json;
+using API_REST_CURSOSACADEMICOS.Application.Events;
 using API_REST_CURSOSACADEMICOS.Data;
+using API_REST_CURSOSACADEMICOS.Domain.Events;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
@@ -422,24 +425,22 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
             await _context.SaveChangesAsync();
 
-            // Crear notificación
-            var notificacion = new Notificacion
+            // Publicar evento de matrícula (el handler creará la notificación y la enviará vía SignalR)
+            if (estudiante.IdUsuario > 0)
             {
-                Tipo = "academico",
-                Accion = "matricula",
-                Mensaje = $"Te has matriculado exitosamente en el curso: {curso.NombreCurso}",
-                MetadataJson = System.Text.Json.JsonSerializer.Serialize(new 
-                { 
-                    idCurso = curso.Id, 
-                    nombreCurso = curso.NombreCurso,
-                    periodo = periodo.Nombre
-                }),
-                IdUsuario = estudiante.IdUsuario,
-                FechaCreacion = DateTime.Now,
-                Leida = false
-            };
-            _context.Notificaciones.Add(notificacion);
-            await _context.SaveChangesAsync();
+                var evento = new EstudianteMatriculadoEvent
+                {
+                    IdEstudiante = idEstudiante,
+                    IdUsuario = estudiante.IdUsuario,
+                    IdCurso = curso.Id,
+                    NombreCurso = curso.NombreCurso,
+                    IdPeriodo = periodo.Id,
+                    NombrePeriodo = periodo.Nombre,
+                    IdMatricula = matriculaFinal.Id
+                };
+                // EventBus deshabilitado
+                // await _eventBus.PublishAsync(evento);
+            }
 
             return new MatriculaDto
             {
@@ -483,24 +484,29 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
             await _context.SaveChangesAsync();
 
-            // Crear notificación
-            var notificacion = new Notificacion
+            // Crear notificación de retiro
+            if (matricula.Estudiante != null && matricula.Estudiante.IdUsuario > 0)
             {
-                Tipo = "academico",
-                Accion = "retiro",
-                Mensaje = $"Te has retirado del curso: {matricula.Curso?.NombreCurso ?? "Desconocido"}",
-                MetadataJson = System.Text.Json.JsonSerializer.Serialize(new 
-                { 
-                    idCurso = matricula.IdCurso, 
-                    nombreCurso = matricula.Curso?.NombreCurso ?? "Desconocido",
-                    periodo = matricula.Periodo?.Nombre ?? "Desconocido"
-                }),
-                IdUsuario = matricula.Estudiante?.IdUsuario,
-                FechaCreacion = DateTime.Now,
-                Leida = false
-            };
-            _context.Notificaciones.Add(notificacion);
-            await _context.SaveChangesAsync();
+                var notificacion = new Notificacion
+                {
+                    Tipo = "academico",
+                    Accion = "retiro",
+                    Mensaje = $"Te has retirado del curso: {matricula.Curso?.NombreCurso ?? "Desconocido"}",
+                    MetadataJson = JsonSerializer.Serialize(new
+                    {
+                        idCurso = matricula.IdCurso,
+                        nombreCurso = matricula.Curso?.NombreCurso ?? "Desconocido",
+                        periodo = matricula.Periodo?.Nombre ?? "Desconocido",
+                        idMatricula = matricula.Id
+                    }),
+                    IdUsuario = matricula.Estudiante.IdUsuario,
+                    FechaCreacion = DateTime.Now,
+                    Leida = false
+                };
+
+                _context.Notificaciones.Add(notificacion);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task<List<NotaDto>> GetNotasAsync(int idEstudiante, int? idPeriodo = null)

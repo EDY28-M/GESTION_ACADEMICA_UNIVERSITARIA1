@@ -158,5 +158,238 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Asistencias
             // Assert
             var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         }
+
+        #region GetEstadisticasCompletasAsistencia Tests
+
+        [Fact]
+        public async Task GetEstadisticasCompletasAsistencia_WithValidData_ReturnsOk()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            var estadisticas = new EstadisticasAsistenciaDto
+            {
+                IdEstudiante = 1,
+                IdCurso = 1,
+                TotalSesionesEsperadas = 20,
+                TotalAsistencias = 18,
+                AsistenciasPresente = 18,
+                AsistenciasFalta = 2,
+                PorcentajeAsistencia = 90m,
+                PorcentajeInasistencia = 10m,
+                PuedeDarExamenFinal = true,
+                MensajeBloqueo = string.Empty
+            };
+
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(estadisticas);
+
+            // Act
+            var result = await _controller.GetEstadisticasCompletasAsistencia(1, 1);
+
+            // Assert
+            var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+            var returnedStats = okResult.Value.Should().BeOfType<EstadisticasAsistenciaDto>().Subject;
+            returnedStats.PorcentajeAsistencia.Should().Be(90m);
+        }
+
+        [Fact]
+        public async Task GetEstadisticasCompletasAsistencia_WithInvalidStudent_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ThrowsAsync(new ArgumentException("Estudiante no encontrado"));
+
+            // Act
+            var result = await _controller.GetEstadisticasCompletasAsistencia(999, 1);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task GetEstadisticasCompletasAsistencia_WithInvalidCurso_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ThrowsAsync(new ArgumentException("Curso no encontrado"));
+
+            // Act
+            var result = await _controller.GetEstadisticasCompletasAsistencia(1, 999);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task GetEstadisticasCompletasAsistencia_WithOver30PercentAbsences_ReturnsPuedeDarFalse()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            var estadisticas = new EstadisticasAsistenciaDto
+            {
+                IdEstudiante = 1,
+                IdCurso = 1,
+                TotalSesionesEsperadas = 20,
+                TotalAsistencias = 12,
+                AsistenciasPresente = 12,
+                AsistenciasFalta = 8,
+                PorcentajeAsistencia = 60m,
+                PorcentajeInasistencia = 40m,
+                PuedeDarExamenFinal = false,
+                MensajeBloqueo = "Ha superado el 30% de inasistencias. No podrá rendir el examen final."
+            };
+
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(estadisticas);
+
+            // Act
+            var result = await _controller.GetEstadisticasCompletasAsistencia(1, 1);
+
+            // Assert
+            var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+            var returnedStats = okResult.Value.Should().BeOfType<EstadisticasAsistenciaDto>().Subject;
+            returnedStats.PuedeDarExamenFinal.Should().BeFalse();
+            returnedStats.MensajeBloqueo.Should().NotBeNullOrEmpty();
+        }
+
+        #endregion
+
+        #region PuedeRendirExamenFinal Tests
+
+        [Fact]
+        public async Task PuedeRendirExamenFinal_WhenCanTakeExam_ReturnsTrue()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            var estadisticas = new EstadisticasAsistenciaDto
+            {
+                IdEstudiante = 1,
+                IdCurso = 1,
+                TotalSesionesEsperadas = 20,
+                TotalAsistencias = 18,
+                AsistenciasPresente = 18,
+                AsistenciasFalta = 2,
+                PorcentajeAsistencia = 90m,
+                PorcentajeInasistencia = 10m,
+                PuedeDarExamenFinal = true,
+                MensajeBloqueo = string.Empty
+            };
+
+            _mockAsistenciaService.Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(true);
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(estadisticas);
+
+            // Act
+            var result = await _controller.PuedeRendirExamenFinal(1, 1);
+
+            // Assert
+            var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        }
+
+        [Fact]
+        public async Task PuedeRendirExamenFinal_WhenCannotTakeExam_ReturnsFalse()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            var estadisticas = new EstadisticasAsistenciaDto
+            {
+                IdEstudiante = 1,
+                IdCurso = 1,
+                TotalSesionesEsperadas = 20,
+                TotalAsistencias = 12,
+                AsistenciasPresente = 12,
+                AsistenciasFalta = 8,
+                PorcentajeAsistencia = 60m,
+                PorcentajeInasistencia = 40m,
+                PuedeDarExamenFinal = false,
+                MensajeBloqueo = "Ha superado el 30% de inasistencias"
+            };
+
+            _mockAsistenciaService.Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(false);
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(estadisticas);
+
+            // Act
+            var result = await _controller.PuedeRendirExamenFinal(1, 1);
+
+            // Assert
+            var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        }
+
+        [Fact]
+        public async Task PuedeRendirExamenFinal_WithInvalidStudent_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            _mockAsistenciaService.Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ThrowsAsync(new ArgumentException("Estudiante no encontrado"));
+
+            // Act
+            var result = await _controller.PuedeRendirExamenFinal(999, 1);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task PuedeRendirExamenFinal_WithInvalidCurso_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            _mockAsistenciaService.Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ThrowsAsync(new ArgumentException("Curso no encontrado"));
+
+            // Act
+            var result = await _controller.PuedeRendirExamenFinal(1, 999);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task PuedeRendirExamenFinal_AtExactly30Percent_ReturnsFalse()
+        {
+            // Arrange
+            SetupAuthenticatedUser();
+
+            var estadisticas = new EstadisticasAsistenciaDto
+            {
+                IdEstudiante = 1,
+                IdCurso = 1,
+                TotalSesionesEsperadas = 20,
+                TotalAsistencias = 14,
+                AsistenciasPresente = 14,
+                AsistenciasFalta = 6,
+                PorcentajeAsistencia = 70m,
+                PorcentajeInasistencia = 30m,
+                PuedeDarExamenFinal = false,
+                MensajeBloqueo = "Ha alcanzado el límite del 30% de inasistencias"
+            };
+
+            _mockAsistenciaService.Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(false);
+            _mockAsistenciaService.Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(estadisticas);
+
+            // Act
+            var result = await _controller.PuedeRendirExamenFinal(1, 1);
+
+            // Assert
+            var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        }
+
+        #endregion
     }
 }

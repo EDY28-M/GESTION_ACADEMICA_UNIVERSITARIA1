@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.Services;
+using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
@@ -28,7 +29,8 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            var docentesService = new DocentesService(_context);
+            var asistenciaServiceMock = new Mock<IAsistenciaService>();
+            var docentesService = new DocentesService(_context, asistenciaServiceMock.Object);
             _controller = new DocentesController(docentesService, _mockLogger.Object);
         }
 

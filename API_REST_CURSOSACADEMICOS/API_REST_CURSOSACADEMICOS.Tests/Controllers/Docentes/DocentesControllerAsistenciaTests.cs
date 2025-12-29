@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services;
+using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes;
 
@@ -37,7 +38,8 @@ public class DocentesControllerAsistenciaTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _loggerMock = new Mock<ILogger<DocentesController>>();
-        var docentesService = new DocentesService(_context);
+        var asistenciaServiceMock = new Mock<IAsistenciaService>();
+        var docentesService = new DocentesService(_context, asistenciaServiceMock.Object);
         _controller = new DocentesController(docentesService, _loggerMock.Object);
 
         SeedTestData();
@@ -156,7 +158,7 @@ public class DocentesControllerAsistenciaTests : IDisposable
             IdCurso = TestCursoId,
             Fecha = DateTime.Today,
             TipoClase = "Teoría",
-            Asistencias = new List<AsistenciaEstudianteDto>
+            Estudiantes = new List<AsistenciaEstudianteDto>
             {
                 new() { IdEstudiante = TestEstudianteId, Presente = true, Observaciones = null },
                 new() { IdEstudiante = TestEstudianteId2, Presente = false, Observaciones = "Justificado" }
@@ -184,7 +186,7 @@ public class DocentesControllerAsistenciaTests : IDisposable
             IdCurso = 9999,
             Fecha = DateTime.Today,
             TipoClase = "Teoría",
-            Asistencias = new List<AsistenciaEstudianteDto>()
+            Estudiantes = new List<AsistenciaEstudianteDto>()
         };
 
         // Act
@@ -205,7 +207,7 @@ public class DocentesControllerAsistenciaTests : IDisposable
             IdCurso = TestCursoId,
             Fecha = DateTime.Today,
             TipoClase = "Teoría",
-            Asistencias = new List<AsistenciaEstudianteDto>()
+            Estudiantes = new List<AsistenciaEstudianteDto>()
         };
 
         // Act
@@ -237,7 +239,7 @@ public class DocentesControllerAsistenciaTests : IDisposable
             IdCurso = TestCursoId,
             Fecha = DateTime.Today,
             TipoClase = "Teoría",
-            Asistencias = new List<AsistenciaEstudianteDto>()
+            Estudiantes = new List<AsistenciaEstudianteDto>()
         };
 
         // Act
@@ -270,7 +272,7 @@ public class DocentesControllerAsistenciaTests : IDisposable
             IdCurso = TestCursoId,
             Fecha = DateTime.Today,
             TipoClase = "Teoría",
-            Asistencias = new List<AsistenciaEstudianteDto>
+            Estudiantes = new List<AsistenciaEstudianteDto>
             {
                 new() { IdEstudiante = TestEstudianteId, Presente = true } // Cambiar a presente
             }
@@ -429,3 +431,5 @@ public class DocentesControllerAsistenciaTests : IDisposable
         _context.Dispose();
     }
 }
+
+

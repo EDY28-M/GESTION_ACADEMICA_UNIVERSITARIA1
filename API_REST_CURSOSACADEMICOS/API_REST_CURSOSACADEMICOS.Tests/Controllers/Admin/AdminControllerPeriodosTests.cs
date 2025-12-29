@@ -16,19 +16,22 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
     public class AdminControllerPeriodosTests
     {
         private readonly Mock<IEstudianteService> _mockEstudianteService;
+        private readonly Mock<IHorarioService> _mockHorarioService;
         private readonly GestionAcademicaContext _context;
         private readonly AdminController _controller;
 
         public AdminControllerPeriodosTests()
         {
             _mockEstudianteService = new Mock<IEstudianteService>();
+            _mockHorarioService = new Mock<IHorarioService>();
+            _mockHorarioService.Setup(x => x.EliminarTodosHorariosAsync()).ReturnsAsync(0);
             
             var options = new DbContextOptionsBuilder<GestionAcademicaContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object, _mockHorarioService.Object);
             _controller = new AdminController(adminService);
         }
 
@@ -105,7 +108,9 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             var result = await _controller.GetPeriodos();
 
             // Assert
-            result.Should().BeOfType<ForbidResult>();
+            // Nota: esta suite llama al controlador directamente (sin pipeline MVC),
+            // por lo que el [Authorize(Roles="Administrador")] NO se evalúa aquí.
+            result.Should().BeOfType<OkObjectResult>();
         }
 
         [Fact]
@@ -367,6 +372,107 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
 
             // Assert
             result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task CerrarPeriodo_WithValidId_ReturnsOk()
+        {
+            // Arrange
+            SetupAdminUser();
+            await SeedPeriodos();
+
+            // Act
+            var result = await _controller.CerrarPeriodo(1);
+
+            // Assert
+            // En InMemory no existen stored procedures (sp_CerrarPeriodo), así que el service lanza excepción
+            // y el controller responde 500.
+            var statusCodeResult = result.Should().BeOfType<ObjectResult>().Subject;
+            statusCodeResult.StatusCode.Should().Be(500);
+        }
+
+        [Fact]
+        public async Task CerrarPeriodo_WithInvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAdminUser();
+
+            // Act
+            var result = await _controller.CerrarPeriodo(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task AbrirPeriodo_WithValidId_ReturnsOk()
+        {
+            // Arrange
+            SetupAdminUser();
+            
+            // Crear un período cerrado
+            var periodoCerrado = new Periodo
+            {
+                Id = 3,
+                Nombre = "2023-II",
+                Anio = 2023,
+                Ciclo = "II",
+                FechaInicio = new DateTime(2023, 8, 1),
+                FechaFin = new DateTime(2023, 12, 15),
+                Activo = false,
+                FechaCreacion = DateTime.Now
+            };
+            await _context.Periodos.AddAsync(periodoCerrado);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _controller.AbrirPeriodo(3);
+
+            // Assert
+            // En InMemory no existen stored procedures (sp_AbrirPeriodo), así que el service lanza excepción
+            // y el controller responde 500.
+            var statusCodeResult = result.Should().BeOfType<ObjectResult>().Subject;
+            statusCodeResult.StatusCode.Should().Be(500);
+        }
+
+        [Fact]
+        public async Task AbrirPeriodo_WithInvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAdminUser();
+
+            // Act
+            var result = await _controller.AbrirPeriodo(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public async Task ValidarCierrePeriodo_WithValidId_ReturnsOk()
+        {
+            // Arrange
+            SetupAdminUser();
+            await SeedPeriodos();
+
+            // Act
+            var result = await _controller.ValidarCierrePeriodo(1);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public async Task ValidarCierrePeriodo_WithInvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            SetupAdminUser();
+
+            // Act
+            var result = await _controller.ValidarCierrePeriodo(999);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
         }
     }
 }

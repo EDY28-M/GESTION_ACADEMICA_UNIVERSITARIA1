@@ -106,7 +106,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
         {
             try
             {
-                if (dto.Asistencias == null || !dto.Asistencias.Any())
+                if (dto.Estudiantes == null || !dto.Estudiantes.Any())
                 {
                     throw new ArgumentException("La lista de asistencias no puede estar vacía");
                 }
@@ -127,12 +127,12 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     .ToListAsync();
 
                 // Obtener información de estudiantes
-                var idsEstudiantes = dto.Asistencias.Select(a => a.IdEstudiante).ToList();
+                var idsEstudiantes = dto.Estudiantes.Select(a => a.IdEstudiante).ToList();
                 var estudiantes = await _context.Estudiantes
                     .Where(e => idsEstudiantes.Contains(e.Id))
                     .ToListAsync();
 
-                foreach (var asistenciaDto in dto.Asistencias)
+                foreach (var asistenciaDto in dto.Estudiantes)
                 {
                     var estudiante = estudiantes.FirstOrDefault(e => e.Id == asistenciaDto.IdEstudiante);
                     if (estudiante == null)
@@ -214,15 +214,7 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     throw new ArgumentException($"Asistencia con ID {idAsistencia} no encontrada");
                 }
 
-                if (dto.Fecha.HasValue)
-                {
-                    asistencia.Fecha = dto.Fecha.Value;
-                }
                 asistencia.Presente = dto.Presente;
-                if (!string.IsNullOrEmpty(dto.TipoClase))
-                {
-                    asistencia.TipoClase = dto.TipoClase;
-                }
                 asistencia.Observaciones = dto.Observaciones;
 
                 await _context.SaveChangesAsync();
@@ -807,13 +799,172 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 Id = a.Id,
                 IdEstudiante = a.IdEstudiante,
                 NombreEstudiante = $"{a.Estudiante?.Nombres} {a.Estudiante?.Apellidos}",
+                CodigoEstudiante = a.Estudiante?.Codigo ?? "",
                 IdCurso = a.IdCurso,
                 NombreCurso = a.Curso?.NombreCurso ?? "",
                 Fecha = a.Fecha,
                 Presente = a.Presente,
+                TipoClase = a.TipoClase,
                 Observaciones = a.Observaciones,
                 FechaRegistro = a.FechaRegistro
             }).ToList();
+        }
+
+        // ============================================
+        // MÉTODOS DE CÁLCULO DE ESTADÍSTICAS Y CONTROL DE ASISTENCIA
+        // ============================================
+
+        /// <summary>
+        /// Calcula las sesiones por semana según los créditos del curso
+        /// Regla: 1 crédito = 1 sesión, 2-3 créditos = 2 sesiones, 4 créditos = 2 sesiones, 5+ créditos = 3 sesiones
+        /// </summary>
+        public int CalcularSesionesPorSemana(int creditos)
+        {
+            return creditos switch
+            {
+                1 => 1,
+                2 or 3 or 4 => 2,
+                >= 5 => 3,
+                _ => 1 // Por defecto 1 sesión
+            };
+        }
+
+        /// <summary>
+        /// Calcula las estadísticas completas de asistencia de un estudiante en un curso
+        /// </summary>
+        public async Task<EstadisticasAsistenciaDto> CalcularEstadisticasAsistenciaAsync(
+            int idEstudiante,
+            int idCurso,
+            int? idPeriodo = null)
+        {
+            try
+            {
+                // Obtener información del estudiante
+                var estudiante = await _context.Estudiantes
+                    .FirstOrDefaultAsync(e => e.Id == idEstudiante);
+
+                if (estudiante == null)
+                {
+                    throw new ArgumentException($"Estudiante con ID {idEstudiante} no encontrado");
+                }
+
+                // Obtener información del curso
+                var curso = await _context.Cursos
+                    .FirstOrDefaultAsync(c => c.Id == idCurso);
+
+                if (curso == null)
+                {
+                    throw new ArgumentException($"Curso con ID {idCurso} no encontrado");
+                }
+
+                // Calcular sesiones por semana según créditos
+                var sesionesPorSemana = CalcularSesionesPorSemana(curso.Creditos);
+
+                // Obtener el periodo activo si no se especifica uno
+                var periodo = idPeriodo.HasValue
+                    ? await _context.Periodos.FindAsync(idPeriodo.Value)
+                    : await _context.Periodos.FirstOrDefaultAsync(p => p.Activo);
+
+                if (periodo == null)
+                {
+                    throw new InvalidOperationException("No se encontró un período activo");
+                }
+
+                // Calcular total de semanas del período
+                var fechaInicio = periodo.FechaInicio;
+                var fechaFin = periodo.FechaFin;
+                var totalDias = (fechaFin - fechaInicio).TotalDays;
+                
+                // CICLO ACADÉMICO FIJO: 4 meses = 16 semanas
+                // Independientemente del período configurado, usar 16 semanas para el cálculo
+                var totalSemanas = 16;
+
+                _logger.LogInformation(
+                    "Cálculo de sesiones - Curso: {NombreCurso}, Créditos: {Creditos}, " +
+                    "Sesiones/Semana: {SesionesPorSemana}, Período: {Periodo}, " +
+                    "FechaInicio: {FechaInicio}, FechaFin: {FechaFin}, " +
+                    "TotalDías: {TotalDias}, TotalSemanas (fijo): {TotalSemanas}",
+                    curso.NombreCurso, curso.Creditos, sesionesPorSemana, periodo.Nombre,
+                    fechaInicio.ToShortDateString(), fechaFin.ToShortDateString(),
+                    totalDias, totalSemanas);
+
+                // Total de sesiones esperadas en el período (4 meses fijos = 16 semanas)
+                var totalSesionesEsperadas = sesionesPorSemana * totalSemanas;
+
+                // Obtener asistencias del estudiante en el curso durante el período
+                var asistencias = await _context.Asistencias
+                    .Where(a =>
+                        a.IdEstudiante == idEstudiante &&
+                        a.IdCurso == idCurso &&
+                        a.Fecha >= fechaInicio &&
+                        a.Fecha <= fechaFin)
+                    .ToListAsync();
+
+                var totalAsistencias = asistencias.Count;
+                var asistenciasPresente = asistencias.Count(a => a.Presente);
+                var asistenciasFalta = asistencias.Count(a => !a.Presente);
+
+                // Calcular porcentajes
+                decimal porcentajeAsistencia = 0;
+                decimal porcentajeInasistencia = 0;
+
+                if (totalAsistencias > 0)
+                {
+                    porcentajeAsistencia = (decimal)asistenciasPresente / totalAsistencias * 100;
+                    porcentajeInasistencia = (decimal)asistenciasFalta / totalAsistencias * 100;
+                }
+
+                // Determinar si puede dar examen final (menos de 30% de inasistencias)
+                var puedeDarExamenFinal = porcentajeInasistencia < 30;
+                var mensajeBloqueo = "";
+
+                if (!puedeDarExamenFinal)
+                {
+                    mensajeBloqueo = $"El estudiante ha superado el 30% de inasistencias ({porcentajeInasistencia:F2}%). " +
+                                    "No puede rendir el examen final según el reglamento académico.";
+                }
+
+                return new EstadisticasAsistenciaDto
+                {
+                    IdEstudiante = idEstudiante,
+                    NombreEstudiante = $"{estudiante.Nombres} {estudiante.Apellidos}",
+                    CodigoEstudiante = estudiante.Codigo,
+                    IdCurso = idCurso,
+                    NombreCurso = curso.NombreCurso,
+                    Creditos = curso.Creditos,
+                    SesionesPorSemana = sesionesPorSemana,
+                    TotalSesionesEsperadas = totalSesionesEsperadas,
+                    TotalAsistencias = totalAsistencias,
+                    AsistenciasPresente = asistenciasPresente,
+                    AsistenciasFalta = asistenciasFalta,
+                    PorcentajeAsistencia = Math.Round(porcentajeAsistencia, 2),
+                    PorcentajeInasistencia = Math.Round(porcentajeInasistencia, 2),
+                    PuedeDarExamenFinal = puedeDarExamenFinal,
+                    MensajeBloqueo = mensajeBloqueo
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al calcular estadísticas de asistencia");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Verifica si un estudiante puede dar examen final
+        /// </summary>
+        public async Task<bool> PuedeDarExamenFinalAsync(int idEstudiante, int idCurso, int? idPeriodo = null)
+        {
+            try
+            {
+                var estadisticas = await CalcularEstadisticasAsistenciaAsync(idEstudiante, idCurso, idPeriodo);
+                return estadisticas.PuedeDarExamenFinal;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar si puede dar examen final");
+                throw;
+            }
         }
     }
 }

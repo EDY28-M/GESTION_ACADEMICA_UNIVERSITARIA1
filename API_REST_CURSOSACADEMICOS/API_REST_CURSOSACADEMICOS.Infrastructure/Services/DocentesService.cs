@@ -12,10 +12,12 @@ namespace API_REST_CURSOSACADEMICOS.Services;
 public sealed class DocentesService : IDocentesService
 {
     private readonly GestionAcademicaContext _context;
+    private readonly IAsistenciaService _asistenciaService;
 
-    public DocentesService(GestionAcademicaContext context)
+    public DocentesService(GestionAcademicaContext context, IAsistenciaService asistenciaService)
     {
         _context = context;
+        _asistenciaService = asistenciaService;
     }
 
     public async Task<List<DocenteDto>> GetDocentesAsync()
@@ -327,7 +329,9 @@ public sealed class DocentesService : IDocentesService
                 var notasDict = new Dictionary<string, object>();
                 foreach (var nota in m.Notas)
                 {
-                    notasDict[nota.TipoEvaluacion] = nota.NotaValor;
+                    // Usar el nombre del tipo de evaluación como clave (case-insensitive para evitar problemas)
+                    var tipoEvaluacionKey = nota.TipoEvaluacion.Trim();
+                    notasDict[tipoEvaluacionKey] = nota.NotaValor;
                 }
 
                 if (promedio.HasValue)
@@ -360,95 +364,103 @@ public sealed class DocentesService : IDocentesService
 
     public async Task<ServiceOutcome> RegistrarNotasAsync(int docenteId, int idCurso, JsonElement notasJson)
     {
-        // Verificar que el curso pertenece al docente
-        var curso = await _context.Cursos.FindAsync(idCurso);
-        if (curso == null)
+        try
         {
-            return ServiceOutcome.NotFound(new { message = "Curso no encontrado" });
-        }
-
-        if (curso.IdDocente != docenteId)
-        {
-            return ServiceOutcome.Forbidden();
-        }
-
-        // Extraer idMatricula del JSON
-        if (!notasJson.TryGetProperty("idMatricula", out var idMatriculaElement))
-        {
-            return ServiceOutcome.BadRequest(new { message = "idMatricula es requerido" });
-        }
-
-        int idMatricula = idMatriculaElement.GetInt32();
-
-        // Verificar que la matrícula existe y pertenece al curso
-        var matricula = await _context.Matriculas
-            .Include(m => m.Notas)
-            .FirstOrDefaultAsync(m => m.Id == idMatricula && m.IdCurso == idCurso);
-
-        if (matricula == null)
-        {
-            return ServiceOutcome.NotFound(new { message = "Matrícula no encontrada" });
-        }
-
-        // Obtener observaciones si existen
-        string? observaciones = null;
-        if (notasJson.TryGetProperty("observaciones", out var obsElement))
-        {
-            observaciones = obsElement.GetString();
-        }
-
-        // Obtener tipos de evaluación configurados para el curso
-        var tiposEvaluacion = await _context.TiposEvaluacion
-            .Where(t => t.IdCurso == idCurso && t.Activo)
-            .OrderBy(t => t.Orden)
-            .ToListAsync();
-
-        // Si no hay tipos configurados, usar configuración por defecto
-        if (tiposEvaluacion.Count == 0)
-        {
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Parcial 1", "parcial1", notasJson, 10, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Parcial 2", "parcial2", notasJson, 10, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Prácticas", "practicas", notasJson, 20, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Medio Curso", "medioCurso", notasJson, 20, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Examen Final", "examenFinal", notasJson, 20, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Actitud", "actitud", notasJson, 5, observaciones);
-            await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Trabajos", "trabajos", notasJson, 15, observaciones);
-        }
-        else
-        {
-            foreach (var tipoEval in tiposEvaluacion)
+            // Verificar que el curso pertenece al docente
+            var curso = await _context.Cursos.FindAsync(idCurso);
+            if (curso == null)
             {
-                var nombreTipo = tipoEval.Nombre;
+                return ServiceOutcome.NotFound(new { message = "Curso no encontrado" });
+            }
 
-                if (notasJson.TryGetProperty(nombreTipo, out var valorElement))
+            if (curso.IdDocente != docenteId)
+            {
+                return ServiceOutcome.Forbidden();
+            }
+
+            // Extraer idMatricula del JSON
+            if (!notasJson.TryGetProperty("idMatricula", out var idMatriculaElement))
+            {
+                return ServiceOutcome.BadRequest(new { message = "idMatricula es requerido" });
+            }
+
+            int idMatricula = idMatriculaElement.GetInt32();
+
+            // Verificar que la matrícula existe y pertenece al curso
+            var matricula = await _context.Matriculas
+                .Include(m => m.Notas)
+                .FirstOrDefaultAsync(m => m.Id == idMatricula && m.IdCurso == idCurso);
+
+            if (matricula == null)
+            {
+                return ServiceOutcome.NotFound(new { message = "Matrícula no encontrada" });
+            }
+
+            // Obtener observaciones si existen
+            string? observaciones = null;
+            if (notasJson.TryGetProperty("observaciones", out var obsElement))
+            {
+                observaciones = obsElement.GetString();
+            }
+
+            // Obtener tipos de evaluación configurados para el curso
+            var tiposEvaluacion = await _context.TiposEvaluacion
+                .Where(t => t.IdCurso == idCurso && t.Activo)
+                .OrderBy(t => t.Orden)
+                .ToListAsync();
+
+            // Si no hay tipos configurados, usar configuración por defecto
+            if (tiposEvaluacion.Count == 0)
+            {
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Parcial 1", "parcial1", notasJson, 10, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Parcial 2", "parcial2", notasJson, 10, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Prácticas", "practicas", notasJson, 20, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Medio Curso", "medioCurso", notasJson, 20, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Examen Final", "examenFinal", notasJson, 20, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Actitud", "actitud", notasJson, 5, observaciones);
+                await RegistrarOActualizarNotaDesdeJson(matricula.Id, "Trabajos", "trabajos", notasJson, 15, observaciones);
+            }
+            else
+            {
+                foreach (var tipoEval in tiposEvaluacion)
                 {
-                    decimal? valor = null;
-                    if (valorElement.ValueKind == JsonValueKind.Number)
-                    {
-                        valor = valorElement.GetDecimal();
-                    }
+                    var nombreTipo = tipoEval.Nombre;
 
-                    await RegistrarOActualizarNota(
-                        matricula.Id,
-                        nombreTipo,
-                        valor,
-                        tipoEval.Peso,
-                        observaciones
-                    );
+                    if (notasJson.TryGetProperty(nombreTipo, out var valorElement))
+                    {
+                        decimal? valor = null;
+                        if (valorElement.ValueKind == JsonValueKind.Number)
+                        {
+                            valor = valorElement.GetDecimal();
+                        }
+
+                        await RegistrarOActualizarNota(
+                            matricula.Id,
+                            nombreTipo,
+                            valor,
+                            tipoEval.Peso,
+                            observaciones
+                        );
+                    }
                 }
             }
+
+            await _context.SaveChangesAsync();
+
+            var promedioFinal = CalcularPromedioFinalConRedondeo(matricula.Id);
+
+            return ServiceOutcome.Ok(new
+            {
+                message = "Notas registradas correctamente",
+                promedioFinal,
+                aprobado = promedioFinal >= 11
+            });
         }
-
-        await _context.SaveChangesAsync();
-
-        var promedioFinal = CalcularPromedioFinalConRedondeo(matricula.Id);
-
-        return ServiceOutcome.Ok(new
+        catch (InvalidOperationException ex)
         {
-            message = "Notas registradas correctamente",
-            promedioFinal,
-            aprobado = promedioFinal >= 11
-        });
+            // Capturar específicamente el error de bloqueo de examen final por asistencias
+            return ServiceOutcome.BadRequest(new { message = ex.Message });
+        }
     }
 
     public async Task<ServiceOutcome> ObtenerTiposEvaluacionAsync(int docenteId, int idCurso)
@@ -654,7 +666,7 @@ public sealed class DocentesService : IDocentesService
             return ServiceOutcome.Forbidden();
         }
 
-        foreach (var asistencia in asistenciaDto.Asistencias)
+        foreach (var asistencia in asistenciaDto.Estudiantes)
         {
             var asistenciaExistente = await _context.Asistencias
                 .FirstOrDefaultAsync(a => a.IdEstudiante == asistencia.IdEstudiante &&
@@ -800,11 +812,13 @@ public sealed class DocentesService : IDocentesService
             {
                 IdEstudiante = estudianteId,
                 NombreEstudiante = $"{estudiante.Nombres} {estudiante.Apellidos}",
-                TotalClases = totalClases,
-                AsistenciasPresentes = presentes,
-                Faltas = faltas,
+                IdCurso = idCurso,
+                NombreCurso = curso.NombreCurso,
+                TotalAsistencias = totalClases,
+                AsistenciasPresente = presentes,
+                AsistenciasFalta = faltas,
                 PorcentajeAsistencia = porcentaje,
-                DetalleAsistencias = asistencias
+                Asistencias = asistencias
             });
         }
 
@@ -898,6 +912,37 @@ public sealed class DocentesService : IDocentesService
     private async Task RegistrarOActualizarNota(int idMatricula, string tipoEvaluacion, decimal? notaValor, decimal peso, string? observaciones)
     {
         if (!notaValor.HasValue) return;
+
+        // Validación especial para Examen Final: verificar asistencias
+        if (tipoEvaluacion.Equals("Examen Final", StringComparison.OrdinalIgnoreCase))
+        {
+            // Obtener el estudiante e idCurso de la matrícula
+            var matricula = await _context.Matriculas
+                .Include(m => m.Estudiante)
+                .Include(m => m.Curso)
+                .FirstOrDefaultAsync(m => m.Id == idMatricula);
+
+            if (matricula != null)
+            {
+                // Verificar si puede dar examen final según asistencias
+                var puedeRendirExamen = await _asistenciaService.PuedeDarExamenFinalAsync(
+                    matricula.IdEstudiante, 
+                    matricula.IdCurso
+                );
+
+                if (!puedeRendirExamen)
+                {
+                    var estadisticas = await _asistenciaService.CalcularEstadisticasAsistenciaAsync(
+                        matricula.IdEstudiante, 
+                        matricula.IdCurso
+                    );
+                    
+                    throw new InvalidOperationException(
+                        $"No se puede registrar la nota de Examen Final. {estadisticas.MensajeBloqueo}"
+                    );
+                }
+            }
+        }
 
         var notaExistente = await _context.Notas
             .FirstOrDefaultAsync(n => n.IdMatricula == idMatricula && n.TipoEvaluacion == tipoEvaluacion);

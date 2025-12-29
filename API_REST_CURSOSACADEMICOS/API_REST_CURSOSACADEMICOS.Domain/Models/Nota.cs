@@ -29,6 +29,9 @@ namespace API_REST_CURSOSACADEMICOS.Models
         [Column("fecha_evaluacion")]
         public DateTime Fecha { get; set; } = DateTime.Now;
 
+        [Column("fecha_registro")]
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
         [Column("observaciones")]
         [MaxLength(500)]
         public string? Observaciones { get; set; }

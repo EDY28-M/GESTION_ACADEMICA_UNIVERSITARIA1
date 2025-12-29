@@ -16,19 +16,22 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
     public class AdminControllerDocentesTests
     {
         private readonly Mock<IEstudianteService> _mockEstudianteService;
+        private readonly Mock<IHorarioService> _mockHorarioService;
         private readonly GestionAcademicaContext _context;
         private readonly AdminController _controller;
 
         public AdminControllerDocentesTests()
         {
             _mockEstudianteService = new Mock<IEstudianteService>();
+            _mockHorarioService = new Mock<IHorarioService>();
+            _mockHorarioService.Setup(x => x.EliminarTodosHorariosAsync()).ReturnsAsync(0);
             
             var options = new DbContextOptionsBuilder<GestionAcademicaContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
             
             _context = new GestionAcademicaContext(options);
-            var adminService = new AdminService(_context, _mockEstudianteService.Object);
+            var adminService = new AdminService(_context, _mockEstudianteService.Object, _mockHorarioService.Object);
             _controller = new AdminController(adminService);
         }
 
@@ -104,7 +107,9 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
             var result = await _controller.GetTodosDocentes();
 
             // Assert
-            result.Should().BeOfType<ForbidResult>();
+            // Nota: al invocar el controlador directamente no se ejecuta el filtro [Authorize].
+            // La verificación de roles debe cubrirse con tests de integración.
+            result.Should().BeOfType<OkObjectResult>();
         }
 
         [Fact]
@@ -119,6 +124,7 @@ namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Admin
                 Apellidos = "Garc�a",
                 Profesion = "Licenciada",
                 Correo = "maria@test.com",
+                EmailUsuario = "maria.usuario@test.com",
                 Password = "password123"
             };
 

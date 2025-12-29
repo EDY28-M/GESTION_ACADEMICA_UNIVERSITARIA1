@@ -9,6 +9,7 @@ using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Models;
 using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services;
+using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 using System.Text.Json;
 
 namespace API_REST_CURSOSACADEMICOS.Tests.Controllers.Docentes;
@@ -22,6 +23,7 @@ public class DocentesControllerNotasTests : IDisposable
     private readonly GestionAcademicaContext _context;
     private readonly DocentesController _controller;
     private readonly Mock<ILogger<DocentesController>> _loggerMock;
+    private readonly Mock<IAsistenciaService> _asistenciaServiceMock;
 
     // Constantes para datos de prueba - mejora mantenibilidad
     private const int TestDocenteId = 1;
@@ -40,7 +42,22 @@ public class DocentesControllerNotasTests : IDisposable
 
         _context = new GestionAcademicaContext(options);
         _loggerMock = new Mock<ILogger<DocentesController>>();
-        var docentesService = new DocentesService(_context);
+        _asistenciaServiceMock = new Mock<IAsistenciaService>();
+
+        // IMPORTANT: DocentesService valida Examen Final consultando asistencias.
+        // Si no configuramos el mock, Moq devolverá null para Task<...> y el controller terminará en 500.
+        _asistenciaServiceMock
+            .Setup(s => s.PuedeDarExamenFinalAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+            .ReturnsAsync(true);
+        _asistenciaServiceMock
+            .Setup(s => s.CalcularEstadisticasAsistenciaAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int?>()))
+            .ReturnsAsync(new EstadisticasAsistenciaDto
+            {
+                PorcentajeInasistencia = 0,
+                MensajeBloqueo = string.Empty
+            });
+
+        var docentesService = new DocentesService(_context, _asistenciaServiceMock.Object);
         _controller = new DocentesController(docentesService, _loggerMock.Object);
 
         // Seed inicial de datos comunes

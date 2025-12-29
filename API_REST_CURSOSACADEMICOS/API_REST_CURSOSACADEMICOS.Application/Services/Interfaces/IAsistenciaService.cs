@@ -104,5 +104,26 @@ namespace API_REST_CURSOSACADEMICOS.Services.Interfaces
         /// Obtiene todas las asistencias de un curso
         /// </summary>
         Task<List<AsistenciaDto>> GetAsistenciasByCursoAsync(int idCurso);
+
+        // ============================================
+        // CÁLCULO DE ESTADÍSTICAS Y CONTROL DE ASISTENCIA
+        // ============================================
+
+        /// <summary>
+        /// Calcula las estadísticas de asistencia de un estudiante en un curso específico
+        /// Incluye sesiones esperadas, porcentaje y si puede dar examen final
+        /// </summary>
+        Task<EstadisticasAsistenciaDto> CalcularEstadisticasAsistenciaAsync(int idEstudiante, int idCurso, int? idPeriodo = null);
+
+        /// <summary>
+        /// Calcula las sesiones por semana según los créditos del curso
+        /// 1 crédito = 1 sesión, 2-3 créditos = 2 sesiones, 4 créditos = 2 sesiones, 5+ créditos = 3 sesiones
+        /// </summary>
+        int CalcularSesionesPorSemana(int creditos);
+
+        /// <summary>
+        /// Verifica si un estudiante puede dar examen final (menos del 30% de inasistencias)
+        /// </summary>
+        Task<bool> PuedeDarExamenFinalAsync(int idEstudiante, int idCurso, int? idPeriodo = null);
     }
 }

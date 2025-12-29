@@ -8,7 +8,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Application;
+using API_REST_CURSOSACADEMICOS.Application.Events;
+using API_REST_CURSOSACADEMICOS.Domain.Events;
 using API_REST_CURSOSACADEMICOS.Infrastructure;
+using API_REST_CURSOSACADEMICOS.Infrastructure.Events.Handlers;
 using API_REST_CURSOSACADEMICOS.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);

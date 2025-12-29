@@ -136,6 +136,11 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         [StringLength(100, ErrorMessage = "El correo no puede exceder 100 caracteres")]
         public string? Correo { get; set; }
 
+        [Required(ErrorMessage = "El email del usuario es requerido")]
+        [EmailAddress(ErrorMessage = "El email del usuario no es válido")]
+        [StringLength(100, ErrorMessage = "El email del usuario no puede exceder 100 caracteres")]
+        public string EmailUsuario { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "La contraseña es requerida")]
         [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
         [StringLength(50, ErrorMessage = "La contraseña no puede exceder 50 caracteres")]
@@ -255,100 +260,9 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public string? Observaciones { get; set; }
     }
 
-    // DTO para registrar asistencia
-    public class RegistrarAsistenciaDto
-    {
-        [Required(ErrorMessage = "El ID del estudiante es requerido")]
-        public int IdEstudiante { get; set; }
-
-        [Required(ErrorMessage = "El ID del curso es requerido")]
-        public int IdCurso { get; set; }
-
-        [Required(ErrorMessage = "La fecha es requerida")]
-        public DateTime Fecha { get; set; }
-
-        [Required(ErrorMessage = "Debe indicar si el estudiante estuvo presente")]
-        public bool Presente { get; set; }
-
-        [Required(ErrorMessage = "El tipo de clase es requerido")]
-        [MaxLength(20)]
-        public string TipoClase { get; set; } = "Teoría"; // "Teoría" o "Práctica"
-
-        [MaxLength(500)]
-        public string? Observaciones { get; set; }
-    }
-
-    // DTO para múltiples asistencias en una fecha
-    public class RegistrarAsistenciasMasivasDto
-    {
-        [Required(ErrorMessage = "El ID del curso es requerido")]
-        public int IdCurso { get; set; }
-
-        [Required(ErrorMessage = "La fecha es requerida")]
-        public DateTime Fecha { get; set; }
-
-        [Required(ErrorMessage = "El tipo de clase es requerido")]
-        [MaxLength(20)]
-        public string TipoClase { get; set; } = "Teoría"; // "Teoría" o "Práctica"
-
-        [Required(ErrorMessage = "La lista de asistencias es requerida")]
-        public List<AsistenciaEstudianteDto> Asistencias { get; set; } = new();
-    }
-
-    public class AsistenciaEstudianteDto
-    {
-        public int IdEstudiante { get; set; }
-        public bool Presente { get; set; }
-        public string? Observaciones { get; set; }
-    }
-
-    // DTO para respuesta de asistencia
-    public class AsistenciaDto
-    {
-        public int Id { get; set; }
-        public int IdEstudiante { get; set; }
-        public string NombreEstudiante { get; set; } = string.Empty;
-        public int IdCurso { get; set; }
-        public string NombreCurso { get; set; } = string.Empty;
-        public DateTime Fecha { get; set; }
-        public bool Presente { get; set; }
-        public string TipoClase { get; set; } = string.Empty; // "Teoría" o "Práctica"
-        public string? Observaciones { get; set; }
-        public DateTime FechaRegistro { get; set; }
-    }
-
-    // DTO para resumen de asistencia de un estudiante
-    public class ResumenAsistenciaDto
-    {
-        public int IdEstudiante { get; set; }
-        public string NombreEstudiante { get; set; } = string.Empty;
-        public int TotalClases { get; set; }
-        public int AsistenciasPresentes { get; set; }
-        public int Faltas { get; set; }
-        public decimal PorcentajeAsistencia { get; set; }
-        public List<AsistenciaDto> DetalleAsistencias { get; set; } = new();
-    }
-
     // ============================================
     // DTOs EXTENDIDOS PARA ASISTENCIAS
     // ============================================
-
-    /// <summary>
-    /// DTO para actualizar una asistencia existente
-    /// </summary>
-    public class ActualizarAsistenciaDto
-    {
-        public DateTime? Fecha { get; set; }
-
-        [Required(ErrorMessage = "El estado de asistencia es requerido")]
-        public bool Presente { get; set; }
-
-        [MaxLength(20)]
-        public string? TipoClase { get; set; } // "Teoría" o "Práctica"
-
-        [MaxLength(500, ErrorMessage = "Las observaciones no pueden exceder 500 caracteres")]
-        public string? Observaciones { get; set; }
-    }
 
     /// <summary>
     /// DTO para resumen de asistencias de un estudiante en un curso específico

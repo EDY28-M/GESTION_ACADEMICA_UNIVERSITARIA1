@@ -10,11 +10,16 @@ public sealed class AdminService : IAdminService
 {
     private readonly GestionAcademicaContext _context;
     private readonly IEstudianteService _estudianteService;
+    private readonly IHorarioService _horarioService;
 
-    public AdminService(GestionAcademicaContext context, IEstudianteService estudianteService)
+    public AdminService(
+        GestionAcademicaContext context, 
+        IEstudianteService estudianteService, 
+        IHorarioService horarioService)
     {
         _context = context;
         _estudianteService = estudianteService;
+        _horarioService = horarioService;
     }
 
     public async Task<ServiceOutcome> GetTodosEstudiantesAsync()
@@ -272,6 +277,7 @@ public sealed class AdminService : IAdminService
 
         _context.Estudiantes.Add(nuevoEstudiante);
         await _context.SaveChangesAsync();
+
 
         return ServiceOutcome.Ok(new
         {
@@ -677,6 +683,50 @@ public sealed class AdminService : IAdminService
             }
         }
 
+        // Validar que el EmailUsuario sea obligatorio
+        if (string.IsNullOrWhiteSpace(dto.EmailUsuario))
+        {
+            return ServiceOutcome.BadRequest(new { mensaje = "El email del usuario es obligatorio" });
+        }
+
+        // Verificar si ya existe un usuario con ese email
+        var usuarioExistente = await _context.Usuarios
+            .FirstOrDefaultAsync(u => u.Email == dto.EmailUsuario);
+
+        Usuario usuario;
+        if (usuarioExistente != null)
+        {
+            // Verificar si el usuario existente es Docente
+            if (usuarioExistente.Rol != "Docente")
+            {
+                return ServiceOutcome.BadRequest(new { mensaje = $"El email {dto.EmailUsuario} ya está registrado como {usuarioExistente.Rol}" });
+            }
+            usuario = usuarioExistente;
+            // Actualizar contraseña si cambió
+            usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, BCrypt.Net.BCrypt.GenerateSalt(11));
+            usuario.Nombres = dto.Nombres;
+            usuario.Apellidos = dto.Apellidos;
+            usuario.FechaActualizacion = DateTime.Now;
+        }
+        else
+        {
+            // Crear nuevo usuario
+            usuario = new Usuario
+            {
+                Email = dto.EmailUsuario,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, BCrypt.Net.BCrypt.GenerateSalt(11)),
+                Nombres = dto.Nombres,
+                Apellidos = dto.Apellidos,
+                Rol = "Docente",
+                Estado = true,
+                FechaCreacion = DateTime.Now,
+                FechaActualizacion = DateTime.Now
+            };
+            _context.Usuarios.Add(usuario);
+            await _context.SaveChangesAsync(); // Guardar para obtener el ID
+        }
+
+        // Crear el docente vinculado al usuario
         var docente = new Docente
         {
             Apellidos = dto.Apellidos,
@@ -684,11 +734,13 @@ public sealed class AdminService : IAdminService
             Profesion = dto.Profesion,
             FechaNacimiento = dto.FechaNacimiento,
             Correo = dto.Correo,
+            IdUsuario = usuario.Id,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, BCrypt.Net.BCrypt.GenerateSalt(11))
         };
 
         _context.Docentes.Add(docente);
         await _context.SaveChangesAsync();
+
 
         return ServiceOutcome.Ok(new
         {
@@ -901,18 +953,24 @@ public sealed class AdminService : IAdminService
 
         var totalProcesados = totalEstudiantes > 0 ? totalEstudiantes : estudiantesConMatriculas;
 
+        // Limpiar todos los horarios al cerrar el período
+        var horariosEliminados = await _horarioService.EliminarTodosHorariosAsync();
+
+
         return ServiceOutcome.Ok(new
         {
             mensaje = "Período cerrado exitosamente",
             estudiantesPromovidos,
             estudiantesRetenidos,
             totalEstudiantesProcesados = totalProcesados,
+            horariosEliminados,
             estadisticas = new
             {
                 totalEstudiantes = totalProcesados,
                 totalMatriculas,
                 cursosAprobados,
                 cursosDesaprobados,
+                horariosEliminados,
                 fechaCierre = DateTime.Now.ToString("o")
             }
         });

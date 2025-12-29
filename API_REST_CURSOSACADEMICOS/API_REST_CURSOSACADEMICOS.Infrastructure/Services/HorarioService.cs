@@ -190,6 +190,177 @@ namespace API_REST_CURSOSACADEMICOS.Services
             return new HorarioConflictoDto { HayConflicto = false };
         }
 
+        public async Task<IEnumerable<DocenteConCursosDto>> ObtenerDocentesConCursosActivosAsync()
+        {
+            // Obtener el período activo
+            var periodoActivo = await _context.Periodos
+                .Where(p => p.Activo == true)
+                .FirstOrDefaultAsync();
+
+            if (periodoActivo == null)
+            {
+                return Enumerable.Empty<DocenteConCursosDto>();
+            }
+
+            // Obtener docentes que tienen cursos asignados
+            var docentesConCursos = await _context.Docentes
+                .Include(d => d.Cursos)
+                .Where(d => d.Cursos.Any(c => c.IdDocente != null))
+                .OrderBy(d => d.Apellidos)
+                .ThenBy(d => d.Nombres)
+                .ToListAsync();
+
+            // Obtener todos los horarios con sus cursos relacionados
+            var todosLosHorarios = await _context.Horarios
+                .Include(h => h.Curso)
+                .ThenInclude(c => c.Docente)
+                .ToListAsync();
+
+            var resultado = new List<DocenteConCursosDto>();
+
+            foreach (var docente in docentesConCursos)
+            {
+                var cursosDocente = docente.Cursos
+                    .Where(c => c.IdDocente == docente.Id)
+                    .OrderBy(c => c.Ciclo)
+                    .ThenBy(c => c.NombreCurso)
+                    .Select(c => {
+                        var horariosDelCurso = todosLosHorarios
+                            .Where(h => h.IdCurso == c.Id)
+                            .OrderBy(h => h.DiaSemana)
+                            .ThenBy(h => h.HoraInicio)
+                            .Select(h => MapToDto(h, c))
+                            .ToList();
+                        
+                        return new CursoConHorariosDto
+                        {
+                            IdCurso = c.Id,
+                            NombreCurso = c.NombreCurso,
+                            Codigo = c.Codigo,
+                            Ciclo = c.Ciclo,
+                            Creditos = c.Creditos,
+                            HorasSemanal = c.HorasSemanal,
+                            Horarios = horariosDelCurso
+                        };
+                    })
+                    .ToList();
+
+                if (cursosDocente.Any())
+                {
+                    resultado.Add(new DocenteConCursosDto
+                    {
+                        IdDocente = docente.Id,
+                        NombreDocente = $"{docente.Apellidos}, {docente.Nombres}",
+                        Profesion = docente.Profesion ?? "",
+                        Correo = docente.Correo,
+                        Cursos = cursosDocente
+                    });
+                }
+            }
+
+            return resultado;
+        }
+
+        public async Task<ResultadoBatchHorariosDto> CrearHorariosBatchAsync(CrearHorariosBatchDto dto)
+        {
+            var resultado = new ResultadoBatchHorariosDto
+            {
+                TotalEnviados = dto.Horarios.Count
+            };
+
+            foreach (var horarioDto in dto.Horarios)
+            {
+                try
+                {
+                    // Validar que HoraInicio < HoraFin
+                    var inicio = TimeSpan.Parse(horarioDto.HoraInicio);
+                    var fin = TimeSpan.Parse(horarioDto.HoraFin);
+
+                    if (inicio >= fin)
+                    {
+                        var cursoInfo = await _context.Cursos.FindAsync(horarioDto.IdCurso);
+                        resultado.Errores.Add(new ErrorHorarioDto
+                        {
+                            IdCurso = horarioDto.IdCurso,
+                            NombreCurso = cursoInfo?.NombreCurso ?? "Desconocido",
+                            DiaSemana = horarioDto.DiaSemana,
+                            Error = "La hora de inicio debe ser menor a la hora de fin"
+                        });
+                        resultado.TotalFallidos++;
+                        continue;
+                    }
+
+                    // Validar cruces
+                    var conflicto = await ValidarCruceHorarioAsync(horarioDto);
+                    if (conflicto.HayConflicto)
+                    {
+                        var cursoInfo = await _context.Cursos.FindAsync(horarioDto.IdCurso);
+                        resultado.Errores.Add(new ErrorHorarioDto
+                        {
+                            IdCurso = horarioDto.IdCurso,
+                            NombreCurso = cursoInfo?.NombreCurso ?? "Desconocido",
+                            DiaSemana = horarioDto.DiaSemana,
+                            Error = conflicto.Mensaje
+                        });
+                        resultado.TotalFallidos++;
+                        continue;
+                    }
+
+                    var horario = new Horario
+                    {
+                        IdCurso = horarioDto.IdCurso,
+                        DiaSemana = horarioDto.DiaSemana,
+                        HoraInicio = inicio,
+                        HoraFin = fin,
+                        Aula = horarioDto.Aula,
+                        Tipo = horarioDto.Tipo
+                    };
+
+                    _context.Horarios.Add(horario);
+                    await _context.SaveChangesAsync();
+
+                    // Cargar datos relacionados para el DTO de respuesta
+                    var curso = await _context.Cursos
+                        .Include(c => c.Docente)
+                        .FirstOrDefaultAsync(c => c.Id == horario.IdCurso);
+
+                    if (curso != null)
+                    {
+                        resultado.HorariosCreados.Add(MapToDto(horario, curso));
+                    }
+                    resultado.TotalCreados++;
+                }
+                catch (Exception ex)
+                {
+                    var cursoInfo = await _context.Cursos.FindAsync(horarioDto.IdCurso);
+                    resultado.Errores.Add(new ErrorHorarioDto
+                    {
+                        IdCurso = horarioDto.IdCurso,
+                        NombreCurso = cursoInfo?.NombreCurso ?? "Desconocido",
+                        DiaSemana = horarioDto.DiaSemana,
+                        Error = ex.Message
+                    });
+                    resultado.TotalFallidos++;
+                }
+            }
+
+            return resultado;
+        }
+
+        public async Task<int> EliminarTodosHorariosAsync()
+        {
+            var horarios = await _context.Horarios.ToListAsync();
+            var count = horarios.Count;
+            
+            if (count > 0)
+            {
+                _context.Horarios.RemoveRange(horarios);
+                await _context.SaveChangesAsync();
+            }
+            
+            return count;
+        }
+
         private HorarioDto MapToDto(Horario horario, Curso curso)
         {
             string[] dias = { "", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" };

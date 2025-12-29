@@ -1,6 +1,10 @@
+using API_REST_CURSOSACADEMICOS.Application.Events;
 using API_REST_CURSOSACADEMICOS.Data;
+using API_REST_CURSOSACADEMICOS.Infrastructure.Events;
+using API_REST_CURSOSACADEMICOS.Infrastructure.Events.Handlers;
 using API_REST_CURSOSACADEMICOS.Services;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +17,12 @@ public static class DependencyInjection
     {
         services.AddDbContext<GestionAcademicaContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
+        // Event Bus - Deshabilitado (RabbitMQ removido)
+        // services.AddSingleton<IEventBus, RabbitMQEventBus>();
+
+        // Event Handlers - Deshabilitado (requiere EventBus)
+        // services.AddScoped<NotificacionEventHandler>();
 
         // Servicios de aplicación (interfaces en Application, implementaciones aquí)
         services.AddScoped<IAuthService, AuthService>();
@@ -27,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IHealthService, HealthService>();
         services.AddScoped<IEstudiantesControllerService, EstudiantesControllerService>();
+        services.AddScoped<ITrabajoService, TrabajoService>();
 
         services.AddScoped<EmailService>();
 

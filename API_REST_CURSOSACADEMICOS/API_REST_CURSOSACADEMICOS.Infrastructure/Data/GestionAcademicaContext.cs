@@ -22,7 +22,12 @@ namespace API_REST_CURSOSACADEMICOS.Data
         public DbSet<TipoEvaluacion> TiposEvaluacion { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<Horario> Horarios { get; set; }
-
+        public DbSet<TrabajoEncargado> TrabajosEncargados { get; set; }
+        public DbSet<TrabajoArchivo> TrabajoArchivos { get; set; }
+        public DbSet<TrabajoLink> TrabajoLinks { get; set; }
+        public DbSet<TrabajoEntrega> TrabajoEntregas { get; set; }
+        public DbSet<TrabajoEntregaArchivo> TrabajoEntregaArchivos { get; set; }
+        public DbSet<TrabajoEntregaLink> TrabajoEntregaLinks { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -178,6 +183,7 @@ namespace API_REST_CURSOSACADEMICOS.Data
                 entity.Property(e => e.NotaValor).HasColumnName("nota").HasColumnType("decimal(5,2)").IsRequired();
                 entity.Property(e => e.Peso).HasColumnName("peso").HasColumnType("decimal(5,2)");
                 entity.Property(e => e.Fecha).HasColumnName("fecha_evaluacion").HasColumnType("date");
+                entity.Property(e => e.FechaRegistro).HasColumnName("fecha_registro").HasDefaultValueSql("GETDATE()");
                 entity.Property(e => e.Observaciones).HasColumnName("observaciones").HasMaxLength(500);
 
                 // Configuración de relación con Matricula
@@ -237,6 +243,165 @@ namespace API_REST_CURSOSACADEMICOS.Data
                       .HasConstraintName("FK_Horario_Curso")
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Configuración para TrabajoEncargado
+            modelBuilder.Entity<TrabajoEncargado>(entity =>
+            {
+                entity.ToTable("TrabajoEncargado");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdCurso).HasColumnName("idCurso").IsRequired();
+                entity.Property(e => e.IdDocente).HasColumnName("idDocente").IsRequired();
+                entity.Property(e => e.Titulo).HasColumnName("titulo").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Descripcion).HasColumnName("descripcion");
+                entity.Property(e => e.FechaCreacion).HasColumnName("fechaCreacion").IsRequired();
+                entity.Property(e => e.FechaLimite).HasColumnName("fechaLimite").IsRequired();
+                entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
+                entity.Property(e => e.FechaActualizacion).HasColumnName("fechaActualizacion");
+                entity.Property(e => e.IdTipoEvaluacion).HasColumnName("idTipoEvaluacion");
+                entity.Property(e => e.NumeroTrabajo).HasColumnName("numeroTrabajo");
+                entity.Property(e => e.TotalTrabajos).HasColumnName("totalTrabajos");
+                entity.Property(e => e.PesoIndividual).HasColumnName("pesoIndividual").HasColumnType("decimal(5,2)");
+
+                entity.HasOne(t => t.Curso)
+                      .WithMany()
+                      .HasForeignKey(t => t.IdCurso)
+                      .HasConstraintName("FK_TrabajoEncargado_Curso")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(t => t.Docente)
+                      .WithMany()
+                      .HasForeignKey(t => t.IdDocente)
+                      .HasConstraintName("FK_TrabajoEncargado_Docente")
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(t => t.TipoEvaluacion)
+                      .WithMany()
+                      .HasForeignKey(t => t.IdTipoEvaluacion)
+                      .HasConstraintName("FK_TrabajoEncargado_TipoEvaluacion")
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.IdCurso);
+                entity.HasIndex(e => e.IdDocente);
+                entity.HasIndex(e => e.FechaLimite);
+            });
+
+            // Configuración para TrabajoArchivo
+            modelBuilder.Entity<TrabajoArchivo>(entity =>
+            {
+                entity.ToTable("TrabajoArchivo");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdTrabajo).HasColumnName("idTrabajo").IsRequired();
+                entity.Property(e => e.NombreArchivo).HasColumnName("nombreArchivo").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.RutaArchivo).HasColumnName("rutaArchivo").IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.TipoArchivo).HasColumnName("tipoArchivo").HasMaxLength(100);
+                entity.Property(e => e.Tamaño).HasColumnName("tamaño");
+                entity.Property(e => e.FechaSubida).HasColumnName("fechaSubida").IsRequired();
+
+                entity.HasOne(a => a.Trabajo)
+                      .WithMany(t => t.Archivos)
+                      .HasForeignKey(a => a.IdTrabajo)
+                      .HasConstraintName("FK_TrabajoArchivo_TrabajoEncargado")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.IdTrabajo);
+            });
+
+            // Configuración para TrabajoLink
+            modelBuilder.Entity<TrabajoLink>(entity =>
+            {
+                entity.ToTable("TrabajoLink");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdTrabajo).HasColumnName("idTrabajo").IsRequired();
+                entity.Property(e => e.Url).HasColumnName("url").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Descripcion).HasColumnName("descripcion").HasMaxLength(200);
+                entity.Property(e => e.FechaCreacion).HasColumnName("fechaCreacion").IsRequired();
+
+                entity.HasOne(l => l.Trabajo)
+                      .WithMany(t => t.Links)
+                      .HasForeignKey(l => l.IdTrabajo)
+                      .HasConstraintName("FK_TrabajoLink_TrabajoEncargado")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.IdTrabajo);
+            });
+
+            // Configuración para TrabajoEntrega
+            modelBuilder.Entity<TrabajoEntrega>(entity =>
+            {
+                entity.ToTable("TrabajoEntrega");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdTrabajo).HasColumnName("idTrabajo").IsRequired();
+                entity.Property(e => e.IdEstudiante).HasColumnName("idEstudiante").IsRequired();
+                entity.Property(e => e.Comentario).HasColumnName("comentario");
+                entity.Property(e => e.FechaEntrega).HasColumnName("fechaEntrega").IsRequired();
+                entity.Property(e => e.Calificacion).HasColumnName("calificacion").HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Observaciones).HasColumnName("observaciones");
+                entity.Property(e => e.FechaCalificacion).HasColumnName("fechaCalificacion");
+                entity.Property(e => e.EntregadoTarde).HasColumnName("entregadoTarde").HasDefaultValue(false);
+
+                entity.HasOne(e => e.Trabajo)
+                      .WithMany(t => t.Entregas)
+                      .HasForeignKey(e => e.IdTrabajo)
+                      .HasConstraintName("FK_TrabajoEntrega_TrabajoEncargado")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Estudiante)
+                      .WithMany()
+                      .HasForeignKey(e => e.IdEstudiante)
+                      .HasConstraintName("FK_TrabajoEntrega_Estudiante")
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.IdTrabajo);
+                entity.HasIndex(e => e.IdEstudiante);
+                entity.HasIndex(e => new { e.IdTrabajo, e.IdEstudiante }).IsUnique();
+            });
+
+            // Configuración para TrabajoEntregaArchivo
+            modelBuilder.Entity<TrabajoEntregaArchivo>(entity =>
+            {
+                entity.ToTable("TrabajoEntregaArchivo");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdEntrega).HasColumnName("idEntrega").IsRequired();
+                entity.Property(e => e.NombreArchivo).HasColumnName("nombreArchivo").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.RutaArchivo).HasColumnName("rutaArchivo").IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.TipoArchivo).HasColumnName("tipoArchivo").HasMaxLength(100);
+                entity.Property(e => e.Tamaño).HasColumnName("tamaño");
+                entity.Property(e => e.FechaSubida).HasColumnName("fechaSubida").IsRequired();
+
+                entity.HasOne(a => a.Entrega)
+                      .WithMany(e => e.Archivos)
+                      .HasForeignKey(a => a.IdEntrega)
+                      .HasConstraintName("FK_TrabajoEntregaArchivo_TrabajoEntrega")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.IdEntrega);
+            });
+
+            // Configuración para TrabajoEntregaLink
+            modelBuilder.Entity<TrabajoEntregaLink>(entity =>
+            {
+                entity.ToTable("TrabajoEntregaLink");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.IdEntrega).HasColumnName("idEntrega").IsRequired();
+                entity.Property(e => e.Url).HasColumnName("url").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Descripcion).HasColumnName("descripcion").HasMaxLength(200);
+                entity.Property(e => e.FechaCreacion).HasColumnName("fechaCreacion").IsRequired();
+
+                entity.HasOne(l => l.Entrega)
+                      .WithMany(e => e.Links)
+                      .HasForeignKey(l => l.IdEntrega)
+                      .HasConstraintName("FK_TrabajoEntregaLink_TrabajoEntrega")
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.IdEntrega);
+            });
+
         }
     }
 }

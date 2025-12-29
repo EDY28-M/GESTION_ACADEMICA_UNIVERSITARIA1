@@ -156,6 +156,7 @@ public class CursosService : ICursosService
             await _context.Entry(prereq).Reference(cp => cp.Prerequisito).LoadAsync();
         }
 
+
         var response = new CursoDto
         {
             Id = curso.Id,

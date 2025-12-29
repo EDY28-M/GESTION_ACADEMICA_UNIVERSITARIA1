@@ -43,8 +43,18 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
                 // Buscar en todas las tablas que pueden tener usuarios
                 var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email);
-                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Correo != null && d.Correo.ToLower() == email);
-                var estudiante = await _context.Estudiantes.FirstOrDefaultAsync(e => e.Correo != null && e.Correo.ToLower() == email);
+                
+                // Buscar docente por correo directo O por el usuario relacionado
+                var docente = await _context.Docentes
+                    .FirstOrDefaultAsync(d => 
+                        (d.Correo != null && d.Correo.ToLower() == email) ||
+                        (usuario != null && d.IdUsuario != null && d.IdUsuario == usuario.Id));
+                
+                // Buscar estudiante por correo directo O por el usuario relacionado
+                var estudiante = await _context.Estudiantes
+                    .FirstOrDefaultAsync(e => 
+                        (e.Correo != null && e.Correo.ToLower() == email) ||
+                        (usuario != null && e.IdUsuario != null && e.IdUsuario == usuario.Id));
 
                 // Contar cuántas coincidencias hay
                 int coincidencias = 0;

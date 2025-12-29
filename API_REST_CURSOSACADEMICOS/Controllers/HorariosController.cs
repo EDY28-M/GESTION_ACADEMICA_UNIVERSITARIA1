@@ -119,5 +119,55 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
 
             return BadRequest(new { message = "Rol no válido para esta operación." });
         }
+
+        /// <summary>
+        /// Obtiene todos los docentes con sus cursos activos y horarios asignados
+        /// </summary>
+        [HttpGet("docentes-con-cursos")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<ActionResult<IEnumerable<DocenteConCursosDto>>> GetDocentesConCursos()
+        {
+            try
+            {
+                var docentes = await _horarioService.ObtenerDocentesConCursosActivosAsync();
+                return Ok(docentes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener docentes con cursos", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Crea múltiples horarios de una vez para un docente
+        /// </summary>
+        [HttpPost("batch")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<ActionResult<ResultadoBatchHorariosDto>> CrearHorariosBatch([FromBody] CrearHorariosBatchDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var resultado = await _horarioService.CrearHorariosBatchAsync(dto);
+                
+                if (resultado.TotalCreados == 0 && resultado.TotalFallidos > 0)
+                {
+                    return BadRequest(new { 
+                        message = "No se pudo crear ningún horario", 
+                        resultado 
+                    });
+                }
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al crear horarios en batch", details = ex.Message });
+            }
+        }
     }
 }

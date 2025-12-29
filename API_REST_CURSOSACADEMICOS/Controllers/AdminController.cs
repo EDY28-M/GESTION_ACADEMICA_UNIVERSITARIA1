@@ -2,7 +2,6 @@ using API_REST_CURSOSACADEMICOS.DTOs;
 using API_REST_CURSOSACADEMICOS.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace API_REST_CURSOSACADEMICOS.Controllers
 {
@@ -20,15 +19,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         public AdminController(IAdminService adminService)
         {
             _adminService = adminService;
-        }
-
-        /// <summary>
-        /// Verifica que el usuario actual sea administrador
-        /// </summary>
-        private bool EsAdministrador()
-        {
-            var rolClaim = User.FindFirst(ClaimTypes.Role)?.Value;
-            return rolClaim == "Administrador";
         }
 
         private IActionResult FromOutcome(ServiceOutcome outcome)
@@ -49,9 +39,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.GetTodosEstudiantesAsync();
                 return FromOutcome(outcome);
             }
@@ -66,9 +53,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.GetEstudianteDetalleAsync(id);
                 return FromOutcome(outcome);
             }
@@ -83,9 +67,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.CrearEstudianteAsync(dto);
                 return FromOutcome(outcome);
             }
@@ -100,9 +81,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.EliminarEstudianteAsync(id);
                 return FromOutcome(outcome);
             }
@@ -117,9 +95,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.CrearCursosDirigidosAsync(dto);
                 return FromOutcome(outcome);
             }
@@ -134,9 +109,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.GetPeriodosAsync();
                 return FromOutcome(outcome);
             }
@@ -151,9 +123,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.CrearPeriodoAsync(dto);
                 return FromOutcome(outcome);
             }
@@ -168,9 +137,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.EditarPeriodoAsync(id, dto);
                 return FromOutcome(outcome);
             }
@@ -185,9 +151,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.ActivarPeriodoAsync(id);
                 return FromOutcome(outcome);
             }
@@ -202,9 +165,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.EliminarPeriodoAsync(id);
                 return FromOutcome(outcome);
             }
@@ -219,9 +179,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.GetTodosDocentesAsync();
                 return FromOutcome(outcome);
             }
@@ -236,9 +193,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.CrearDocenteAsync(dto);
                 return FromOutcome(outcome);
             }
@@ -253,9 +207,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.AsignarPasswordDocenteAsync(id, dto);
                 return FromOutcome(outcome);
             }
@@ -270,9 +221,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.ActualizarDocenteAsync(id, dto);
                 return FromOutcome(outcome);
             }
@@ -287,9 +235,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.EliminarDocenteAsync(id);
                 return FromOutcome(outcome);
             }
@@ -304,9 +249,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.CerrarPeriodoAsync(id);
                 return FromOutcome(outcome);
             }
@@ -321,9 +263,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.AbrirPeriodoAsync(id);
                 return FromOutcome(outcome);
             }
@@ -338,9 +277,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
-                if (!EsAdministrador())
-                    return Forbid();
-
                 var outcome = await _adminService.ValidarCierrePeriodoAsync(id);
                 return FromOutcome(outcome);
             }

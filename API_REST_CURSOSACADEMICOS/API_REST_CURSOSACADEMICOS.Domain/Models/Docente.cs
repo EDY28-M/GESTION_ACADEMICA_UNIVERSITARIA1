@@ -10,6 +10,9 @@ namespace API_REST_CURSOSACADEMICOS.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
+        [Column("idUsuario")]
+        public int? IdUsuario { get; set; }
+
         [Required]
         [StringLength(100)]
         public string Apellidos { get; set; } = string.Empty;

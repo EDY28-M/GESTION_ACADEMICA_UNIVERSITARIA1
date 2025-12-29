@@ -469,5 +469,66 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 return StatusCode(500, new { mensaje = "Error interno del servidor", detalle = ex.Message });
             }
         }
+
+        /// <summary>
+        /// GET /api/asistencias/estudiante/{idEstudiante}/curso/{idCurso}/estadisticas-completas
+        /// Obtiene estadísticas completas de asistencia incluyendo cálculo de sesiones
+        /// esperadas según créditos y verificación del 30% de inasistencias
+        /// </summary>
+        [HttpGet("estudiante/{idEstudiante}/curso/{idCurso}/estadisticas-completas")]
+        [Authorize]
+        public async Task<ActionResult<EstadisticasAsistenciaDto>> GetEstadisticasCompletasAsistencia(
+            int idEstudiante,
+            int idCurso)
+        {
+            try
+            {
+                var estadisticas = await _asistenciaService.CalcularEstadisticasAsistenciaAsync(idEstudiante, idCurso);
+                return Ok(estadisticas);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estadísticas completas de asistencia");
+                return StatusCode(500, new { mensaje = "Error interno del servidor", detalle = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// GET /api/asistencias/estudiante/{idEstudiante}/curso/{idCurso}/puede-examen-final
+        /// Verifica si un estudiante puede rendir el examen final basado en su porcentaje de inasistencias
+        /// Retorna false si supera el 30% de inasistencias
+        /// </summary>
+        [HttpGet("estudiante/{idEstudiante}/curso/{idCurso}/puede-examen-final")]
+        [Authorize]
+        public async Task<ActionResult<object>> PuedeRendirExamenFinal(
+            int idEstudiante,
+            int idCurso)
+        {
+            try
+            {
+                var puedeRendir = await _asistenciaService.PuedeDarExamenFinalAsync(idEstudiante, idCurso);
+                var estadisticas = await _asistenciaService.CalcularEstadisticasAsistenciaAsync(idEstudiante, idCurso);
+                
+                return Ok(new 
+                { 
+                    puedeRendirExamenFinal = puedeRendir,
+                    porcentajeInasistencia = estadisticas.PorcentajeInasistencia,
+                    mensaje = estadisticas.MensajeBloqueo
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar elegibilidad para examen final");
+                return StatusCode(500, new { mensaje = "Error interno del servidor", detalle = ex.Message });
+            }
+        }
     }
 }
