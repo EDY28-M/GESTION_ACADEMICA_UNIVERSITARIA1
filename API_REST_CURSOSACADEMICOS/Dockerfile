@@ -33,8 +33,10 @@ EXPOSE 8081
 COPY --from=publish /app/publish .
 
 # Configurar variables de entorno
-ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+# ASP.NET Core 6+ automáticamente lee la variable PORT si no se define ASPNETCORE_URLS
+# Cloud Run inyecta PORT automáticamente, así que no necesitamos configurarlo aquí
+# Si no hay PORT, ASP.NET Core usará el puerto por defecto (5000 o 8080 dependiendo de la versión)
 
 # Punto de entrada de la aplicación
 ENTRYPOINT ["dotnet", "API_REST_CURSOSACADEMICOS.dll"]

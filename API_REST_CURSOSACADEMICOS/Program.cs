@@ -205,4 +205,10 @@ app.MapGet("/info", () => Results.Ok(new {
     version = "1.0.0"
 }));
 
+// Configurar el puerto para Cloud Run
+// Cloud Run inyecta la variable PORT, y ASP.NET Core la lee automáticamente
+// Pero para asegurarnos, lo configuramos explícitamente aquí ANTES de app.Run()
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Add($"http://0.0.0.0:{port}");
+
 app.Run();
