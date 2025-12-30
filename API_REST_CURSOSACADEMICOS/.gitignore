@@ -16,6 +16,7 @@ terraform/.terraform/providers/
 *.json
 !appsettings.json
 !appsettings.*.json
+appsettings.Local.json
 
 # Archivos de secretos
 *.pem

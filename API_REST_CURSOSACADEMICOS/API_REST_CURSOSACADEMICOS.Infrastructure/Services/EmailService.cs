@@ -41,20 +41,37 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     return true; // Simular éxito en desarrollo
                 }
 
-                // Si no hay contraseña configurada, simular envío (modo desarrollo)
-                if (string.IsNullOrEmpty(password) || 
-                    password == "CHANGE_ME_APP_PASSWORD" || 
+                // Si el password no está en appsettings, permitir configurarlo por variables de entorno (recomendado)
+                // - Docker Compose: EMAIL_PASSWORD -> EmailSettings__Password
+                // - Local dev: setx EMAIL_PASSWORD "..."
+                if (string.IsNullOrWhiteSpace(password) ||
+                    password == "CHANGE_ME_APP_PASSWORD" ||
                     password == "TU_CONTRASEÑA_DE_APLICACION_AQUI")
                 {
-                    _logger.LogWarning("⚠️ Email no configurado. Configure EmailSettings:Password en appsettings.json");
-                    _logger.LogInformation($"📧 [SIMULADO] Email para: {toEmail}");
-                    _logger.LogInformation($"📧 [SIMULADO] Asunto: {subject}");
-                    _logger.LogInformation($"📧 [SIMULADO] Para configurar Gmail:");
-                    _logger.LogInformation($"   1. Ve a tu cuenta de Google -> Seguridad");
-                    _logger.LogInformation($"   2. Habilita 'Verificación en 2 pasos'");
-                    _logger.LogInformation($"   3. Genera una 'Contraseña de aplicación'");
-                    _logger.LogInformation($"   4. Usa esa contraseña en EmailSettings:Password");
-                    return true; // Simular éxito en desarrollo
+                    password =
+                        Environment.GetEnvironmentVariable("EMAIL_PASSWORD") ??
+                        Environment.GetEnvironmentVariable("GMAIL_APP_PASSWORD") ??
+                        password;
+                }
+
+                // Si sigue sin password, simular SOLO en Development (evitar falsas "ok" en producción)
+                if (string.IsNullOrWhiteSpace(password) ||
+                    password == "CHANGE_ME_APP_PASSWORD" ||
+                    password == "TU_CONTRASEÑA_DE_APLICACION_AQUI")
+                {
+                    var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+                    if (environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning("⚠️ Email sin password. Configura EMAIL_PASSWORD (recomendado) o EmailSettings:Password.");
+                        _logger.LogInformation($"📧 [SIMULADO] Email para: {toEmail}");
+                        _logger.LogInformation($"📧 [SIMULADO] Asunto: {subject}");
+                        _logger.LogInformation($"📧 [SIMULADO] Para Gmail usa una 'Contraseña de aplicación' (2FA) y guárdala como secret/ENV.");
+                        return true;
+                    }
+
+                    _logger.LogError("❌ Email no configurado: falta EmailSettings:Password / EMAIL_PASSWORD en entorno no-Development.");
+                    return false;
                 }
 
                 // Configurar cliente SMTP con soporte para STARTTLS

@@ -18,6 +18,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Soporte para configuración local NO versionada (por ejemplo, secretos de desarrollo)
+// Nota: este archivo NO debe subirse al repo. Está ignorado por .gitignore porque termina en .json
+// y solo se whitelist-ean appsettings.json y appsettings.*.json.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
