@@ -103,9 +103,8 @@ jobs:
           echo "Verificando secrets requeridos..."
           MISSING_SECRETS=0
           
-          # GCP_SA_KEY es requerido
-          GCP_SA_KEY="${{ secrets.GCP_SA_KEY }}"
-          if [ -z "$GCP_SA_KEY" ]; then
+          # GCP_SA_KEY es requerido (solo verificar que existe, sin leer contenido)
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
             echo "❌ ERROR: GCP_SA_KEY secret no está configurado"
             MISSING_SECRETS=1
           else
