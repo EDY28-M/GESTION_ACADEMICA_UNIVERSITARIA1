@@ -8,25 +8,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Application;
-using API_REST_CURSOSACADEMICOS.Application.Events;
-using API_REST_CURSOSACADEMICOS.Domain.Events;
 using API_REST_CURSOSACADEMICOS.Infrastructure;
-using API_REST_CURSOSACADEMICOS.Infrastructure.Events.Handlers;
 using API_REST_CURSOSACADEMICOS.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar el puerto para Cloud Run ANTES de construir la app
-// Cloud Run inyecta la variable PORT automáticamente
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-
 // Add services to the container.
-
-// Soporte para configuración local NO versionada (por ejemplo, secretos de desarrollo)
-// Nota: este archivo NO debe subirse al repo. Está ignorado por .gitignore porque termina en .json
-// y solo se whitelist-ean appsettings.json y appsettings.*.json.
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
