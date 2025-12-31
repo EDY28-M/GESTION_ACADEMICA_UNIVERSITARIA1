@@ -1,6 +1,6 @@
 # ========================================
 # GITHUB ACTIONS - CI/CD PARA GOOGLE CLOUD RUN
-# Despliegue autom tico con pruebas autom ticas
+# Build, Test y Deploy automático a producción
 # ========================================
 
 name: Build, Test and Deploy to Google Cloud Run
@@ -26,7 +26,7 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,20 +36,25 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore dependencies
+      - name: Restore API dependencies
         run: dotnet restore API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.csproj
 
-      - name: Build project
+      - name: Build API
         run: dotnet build API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.csproj --configuration Release --no-restore
 
       - name: Restore test dependencies
         run: dotnet restore API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.Tests/API_REST_CURSOSACADEMICOS.Tests.csproj
 
-      - name: Build test project
+      - name: Build tests
         run: dotnet build API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.Tests/API_REST_CURSOSACADEMICOS.Tests.csproj --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.Tests/API_REST_CURSOSACADEMICOS.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        run: |
+          dotnet test API_REST_CURSOSACADEMICOS/API_REST_CURSOSACADEMICOS.Tests/API_REST_CURSOSACADEMICOS.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -60,14 +65,14 @@ jobs:
 
   # ========================================
   # JOB 2: DEPLOY A GOOGLE CLOUD RUN
-  # Solo se ejecuta si los tests pasan
+  # Solo si los tests pasan y es push a main/master
   # ========================================
   deploy:
     name: Deploy to Google Cloud Run
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,25 +87,24 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Configure Docker for Google Artifact Registry
+      - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ./API_REST_CURSOSACADEMICOS
-          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
+          docker build \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            ./API_REST_CURSOSACADEMICOS
+
+          docker tag \
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
 
       - name: Push Docker image to Artifact Registry
         run: |
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
 
-      # Desplegar a Cloud Run con variables de entorno
-      # Requiere los siguientes secrets en GitHub:
-      # - CLOUD_RUN_CONNECTION_STRING: Connection string de SQL Server (ej: "Server=tcp:...;Database=...;User Id=...;Password=...;TrustServerCertificate=True")
-      # - JWT_SECRET_KEY: Clave secreta para JWT (mínimo 32 caracteres, recomendado 64+)
-      # - JWT_ISSUER: Emisor del token (ej: "GestionAcademicaAPI")
-      # - JWT_AUDIENCE: Audiencia del token (ej: "GestionAcademicaClients")
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -109,17 +113,28 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --port 8080 \
+            --quiet \
+            --verbosity=info \
             --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
-            --set-env-vars "ConnectionStrings__DefaultConnection=${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" \
-            --set-env-vars "JwtSettings__SecretKey=${{ secrets.JWT_SECRET_KEY }}" \
-            --set-env-vars "JwtSettings__Issuer=${{ secrets.JWT_ISSUER }}" \
-            --set-env-vars "JwtSettings__Audience=${{ secrets.JWT_AUDIENCE }}" \
+            --set-env-vars ConnectionStrings__DefaultConnection="${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" \
+            --set-env-vars JwtSettings__SecretKey="${{ secrets.JWT_SECRET_KEY }}" \
+            --set-env-vars JwtSettings__Issuer="${{ secrets.JWT_ISSUER }}" \
+            --set-env-vars JwtSettings__Audience="${{ secrets.JWT_AUDIENCE }}" \
             --set-env-vars JwtSettings__ExpirationMinutes=30 \
             --set-env-vars JwtSettings__RefreshTokenExpirationDays=7 \
             --update-labels managed-by=github-actions,commit-sha=${{ github.sha }} \
-            --format json
+            --format=json
 
       - name: Show deployed URL
         run: |
-          echo "?? Deployment successful!"
-          echo "Service URL: $(gcloud run services describe ${{ env.SERVICE_NAME }} --region=${{ env.REGION }} --format='value(status.url)')"
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+
+          if [ -z "$SERVICE_URL" ]; then
+            echo "ERROR: Deployment failed, no service URL found"
+            exit 1
+          fi
+
+          echo "Deployment successful"
+          echo "Service URL: $SERVICE_URL"
