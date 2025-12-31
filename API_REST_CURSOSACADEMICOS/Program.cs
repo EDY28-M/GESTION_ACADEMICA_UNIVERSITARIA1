@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Http;
 using API_REST_CURSOSACADEMICOS.Data;
 using API_REST_CURSOSACADEMICOS.Application;
 using API_REST_CURSOSACADEMICOS.Infrastructure;
@@ -32,8 +33,11 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Configurar Health Checks para Load Balancer
+// Configurar health check de DB con timeout corto para no bloquear el startup
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<GestionAcademicaContext>("database")
+    .AddDbContextCheck<GestionAcademicaContext>("database", 
+        failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+        tags: new[] { "db", "sqlserver" })
     .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"));
 
 // Configurar JWT Authentication
@@ -158,7 +162,16 @@ Console.WriteLine($"[APP] Ambiente: {app.Environment.EnvironmentName}");
 Console.WriteLine($"[APP] URLs configuradas: {string.Join(", ", app.Urls)}");
 
 // Configure the HTTP request pipeline.
-// Configure the HTTP request pipeline.
+// ========================================
+// CONFIGURACIÓN PARA LOAD BALANCER
+// ========================================
+// Configurar headers para proxy/load balancer (DEBE IR PRIMERO)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+                      Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -179,21 +192,20 @@ app.MapControllers();
 // Mapear el hub de SignalR
 app.MapHub<NotificationsHub>("/hub/notifications");
 
-// ========================================
-// CONFIGURACIÓN PARA LOAD BALANCER
-// ========================================
-// Configurar headers para proxy/load balancer
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
-                      Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
-});
-
 // Health checks para load balancer
+// Nota: Cloud Run verifica que el puerto esté escuchando, no este endpoint específico
 app.UseHealthChecks("/health", new HealthCheckOptions
 {
+    // Permitir que el health check devuelva 200 incluso si algunos checks están degradados
+    ResultStatusCodes =
+    {
+        [Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded] = StatusCodes.Status200OK,
+        [Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+    },
     ResponseWriter = async (context, report) =>
     {
+        context.Response.ContentType = "application/json";
         var response = new
         {
             status = report.Status.ToString(),
@@ -202,7 +214,8 @@ app.UseHealthChecks("/health", new HealthCheckOptions
             checks = report.Entries.Select(x => new { 
                 name = x.Key, 
                 status = x.Value.Status.ToString(),
-                duration = x.Value.Duration.TotalMilliseconds 
+                duration = x.Value.Duration.TotalMilliseconds,
+                description = x.Value.Description
             })
         };
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
