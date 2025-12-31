@@ -1,6 +1,6 @@
 # ========================================
 # GITHUB ACTIONS - CI/CD PARA GOOGLE CLOUD RUN
-# Despliegue autom·tico con pruebas autom·ticas
+# Despliegue autom tico con pruebas autom ticas
 # ========================================
 
 name: Build, Test and Deploy to Google Cloud Run
@@ -16,7 +16,6 @@ on:
       - master
 
 env:
-  PROJECT_ID: flash-adapter-424617-u4
   SERVICE_NAME: api-rest-cursosacademicos
   REGION: us-central1
 
@@ -80,30 +79,45 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Set GCP Project
-        run: gcloud config set project ${{ env.PROJECT_ID }}
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Configure Docker for Google Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ./API_REST_CURSOSACADEMICOS
-          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ./API_REST_CURSOSACADEMICOS
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:latest
 
+      # Desplegar a Cloud Run con variables de entorno
+      # Requiere los siguientes secrets en GitHub:
+      # - CLOUD_RUN_CONNECTION_STRING: Connection string de SQL Server (ej: "Server=tcp:...;Database=...;User Id=...;Password=...;TrustServerCertificate=True")
+      # - JWT_SECRET_KEY: Clave secreta para JWT (m√≠nimo 32 caracteres, recomendado 64+)
+      # - JWT_ISSUER: Emisor del token (ej: "GestionAcademicaAPI")
+      # - JWT_AUDIENCE: Audiencia del token (ej: "GestionAcademicaClients")
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --port=8080'
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
+            --set-env-vars "ConnectionStrings__DefaultConnection=${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" \
+            --set-env-vars "JwtSettings__SecretKey=${{ secrets.JWT_SECRET_KEY }}" \
+            --set-env-vars "JwtSettings__Issuer=${{ secrets.JWT_ISSUER }}" \
+            --set-env-vars "JwtSettings__Audience=${{ secrets.JWT_AUDIENCE }}" \
+            --set-env-vars JwtSettings__ExpirationMinutes=30 \
+            --set-env-vars JwtSettings__RefreshTokenExpirationDays=7 \
+            --update-labels managed-by=github-actions,commit-sha=${{ github.sha }} \
+            --format json
 
       - name: Show deployed URL
         run: |
