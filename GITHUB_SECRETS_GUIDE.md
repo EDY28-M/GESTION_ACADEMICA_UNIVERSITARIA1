@@ -31,10 +31,17 @@ Ve a tu repositorio en GitHub → **Settings** → **Secrets and variables** →
 }
 ```
 
-### 2. **GCP_PROJECT_ID**
+### 2. **GCP_PROJECT_ID** ⚠️ IMPORTANTE
 - **Nombre**: `GCP_PROJECT_ID`
-- **Descripción**: ID del proyecto de Google Cloud
-- **Valor**: `flash-adapter-424617-u4`
+- **Descripción**: **ID del proyecto** de Google Cloud (NO el nombre del proyecto)
+- **Valor correcto**: `flash-adapter-424617-u4`
+- **⚠️ NO uses el nombre del proyecto** (como "My First Project")
+- **Cómo obtenerlo**:
+  1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
+  2. Selecciona tu proyecto
+  3. El **Project ID** aparece en el dashboard o en la configuración del proyecto
+  4. **Formato**: Solo letras minúsculas, números y guiones (ej: `flash-adapter-424617-u4`)
+  5. **NO debe tener espacios ni caracteres especiales**
 
 ### 3. **CLOUD_RUN_CONNECTION_STRING**
 - **Nombre**: `CLOUD_RUN_CONNECTION_STRING`

@@ -82,6 +82,22 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Verify Project ID
+        run: |
+          echo "Verificando Project ID..."
+          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+            echo "ERROR: GCP_PROJECT_ID secret no está configurado"
+            exit 1
+          fi
+          echo "Project ID configurado: ${{ secrets.GCP_PROJECT_ID }}"
+          # El Project ID debe ser alfanumérico con guiones, no espacios ni caracteres especiales
+          if [[ ! "${{ secrets.GCP_PROJECT_ID }}" =~ ^[a-z0-9-]+$ ]]; then
+            echo "ERROR: El Project ID parece ser un nombre de proyecto, no un ID"
+            echo "El Project ID debe ser como: flash-adapter-424617-u4"
+            echo "NO debe ser como: 'My First Project' o tener espacios"
+            exit 1
+          fi
+
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
