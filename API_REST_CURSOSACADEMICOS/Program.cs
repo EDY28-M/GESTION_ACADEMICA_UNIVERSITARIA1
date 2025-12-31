@@ -42,37 +42,22 @@ builder.Services.AddHealthChecks()
 
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"];
-var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
-var jwtAudience = builder.Configuration["JwtSettings:Audience"];
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "GestionAcademicaAPI";
+var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "GestionAcademicaClients";
 
-// Validar configuración JWT antes de continuar
-var missingConfigs = new List<string>();
+// Validar que JWT SecretKey esté configurado (es el único requerido)
 if (string.IsNullOrWhiteSpace(jwtSecretKey))
 {
-    missingConfigs.Add("JwtSettings__SecretKey");
-}
-if (string.IsNullOrWhiteSpace(jwtIssuer))
-{
-    missingConfigs.Add("JwtSettings__Issuer");
-}
-if (string.IsNullOrWhiteSpace(jwtAudience))
-{
-    missingConfigs.Add("JwtSettings__Audience");
-}
-
-if (missingConfigs.Any())
-{
-    var errorMsg = $"[ERROR CRÍTICO] Faltan variables de entorno JWT:\n" +
-                   string.Join("\n", missingConfigs.Select(c => $"  - {c}")) +
-                   $"\n\nEstas deben estar configuradas como secrets en GitHub Actions o como variables de entorno en Cloud Run.";
+    var errorMsg = "[ERROR CRÍTICO] JWT SecretKey no está configurada.\n" +
+                   "Configura JwtSettings__SecretKey como variable de entorno o secret en GitHub Actions.\n" +
+                   "Revisa la configuración en GitHub: Settings → Secrets and variables → Actions";
     Console.WriteLine(errorMsg);
-    Console.WriteLine($"[INFO] Revisa la configuración en GitHub: Settings → Secrets and variables → Actions");
-    throw new InvalidOperationException($"Faltan variables de entorno JWT: {string.Join(", ", missingConfigs)}");
+    throw new InvalidOperationException("JWT SecretKey no está configurada");
 }
 
-Console.WriteLine($"[CONFIG] JWT SecretKey configurada (longitud: {jwtSecretKey?.Length ?? 0} caracteres)");
-Console.WriteLine($"[CONFIG] JWT Issuer: {jwtIssuer ?? "N/A"}");
-Console.WriteLine($"[CONFIG] JWT Audience: {jwtAudience ?? "N/A"}");
+Console.WriteLine($"[CONFIG] JWT SecretKey configurada (longitud: {jwtSecretKey.Length} caracteres)");
+Console.WriteLine($"[CONFIG] JWT Issuer: {jwtIssuer}");
+Console.WriteLine($"[CONFIG] JWT Audience: {jwtAudience}");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -87,9 +72,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer!,
-        ValidAudience = jwtAudience!,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey!)),
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero // Eliminar tolerancia de tiempo por defecto (5 minutos)
     };
 

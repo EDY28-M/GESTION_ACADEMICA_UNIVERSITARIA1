@@ -100,40 +100,43 @@ jobs:
 
       - name: Verify Required Secrets
         run: |
-          echo "Verificando que todos los secrets estén configurados..."
+          echo "Verificando secrets requeridos..."
           MISSING_SECRETS=0
           
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+          # GCP_SA_KEY es requerido
+          GCP_SA_KEY="${{ secrets.GCP_SA_KEY }}"
+          if [ -z "$GCP_SA_KEY" ]; then
             echo "❌ ERROR: GCP_SA_KEY secret no está configurado"
             MISSING_SECRETS=1
           else
             echo "✅ GCP_SA_KEY está configurado"
           fi
           
-          if [ -z "${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" ]; then
-            echo "❌ ERROR: CLOUD_RUN_CONNECTION_STRING secret no está configurado"
+          # JWT_SECRET_KEY es requerido
+          JWT_KEY="${{ secrets.JWT_SECRET_KEY }}"
+          if [ -z "$JWT_KEY" ]; then
+            echo "❌ ERROR: JWT_SECRET_KEY secret no está configurado"
             MISSING_SECRETS=1
+          else
+            KEY_LENGTH=$(echo -n "$JWT_KEY" | wc -c)
+            echo "✅ JWT_SECRET_KEY está configurado (longitud: $KEY_LENGTH caracteres)"
+          fi
+          
+          # Secrets opcionales (solo informativos)
+          if [ -z "${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" ]; then
+            echo "⚠️  CLOUD_RUN_CONNECTION_STRING no está configurado (opcional por ahora)"
           else
             echo "✅ CLOUD_RUN_CONNECTION_STRING está configurado"
           fi
           
-          if [ -z "${{ secrets.JWT_SECRET_KEY }}" ]; then
-            echo "❌ ERROR: JWT_SECRET_KEY secret no está configurado"
-            MISSING_SECRETS=1
-          else
-            echo "✅ JWT_SECRET_KEY está configurado (longitud: $(echo -n '${{ secrets.JWT_SECRET_KEY }}' | wc -c) caracteres)"
-          fi
-          
           if [ -z "${{ secrets.JWT_ISSUER }}" ]; then
-            echo "❌ ERROR: JWT_ISSUER secret no está configurado"
-            MISSING_SECRETS=1
+            echo "⚠️  JWT_ISSUER no está configurado (usará valor por defecto)"
           else
             echo "✅ JWT_ISSUER está configurado: ${{ secrets.JWT_ISSUER }}"
           fi
           
           if [ -z "${{ secrets.JWT_AUDIENCE }}" ]; then
-            echo "❌ ERROR: JWT_AUDIENCE secret no está configurado"
-            MISSING_SECRETS=1
+            echo "⚠️  JWT_AUDIENCE no está configurado (usará valor por defecto)"
           else
             echo "✅ JWT_AUDIENCE está configurado: ${{ secrets.JWT_AUDIENCE }}"
           fi
@@ -147,19 +150,21 @@ jobs:
             echo "Y configura los secrets faltantes."
             echo ""
             echo "Secrets requeridos:"
-            echo "  - GCP_SA_KEY"
-            echo "  - GCP_PROJECT_ID"
+            echo "  - GCP_SA_KEY (requerido)"
+            echo "  - GCP_PROJECT_ID (requerido)"
+            echo "  - JWT_SECRET_KEY (requerido)"
+            echo ""
+            echo "Secrets opcionales:"
             echo "  - CLOUD_RUN_CONNECTION_STRING"
-            echo "  - JWT_SECRET_KEY"
-            echo "  - JWT_ISSUER"
-            echo "  - JWT_AUDIENCE"
+            echo "  - JWT_ISSUER (usa valor por defecto si no está configurado)"
+            echo "  - JWT_AUDIENCE (usa valor por defecto si no está configurado)"
             echo ""
             echo "Consulta GITHUB_SECRETS_GUIDE.md para más información"
             exit 1
           fi
           
           echo ""
-          echo "✅ Todos los secrets están configurados correctamente"
+          echo "✅ Secrets requeridos están configurados correctamente"
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
@@ -187,35 +192,65 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           echo "Desplegando a Cloud Run..."
-          echo "Verificando que los secrets no estén vacíos..."
           
-          # Verificar que los secrets no estén vacíos (doble verificación)
-          if [ -z "${{ secrets.JWT_SECRET_KEY }}" ]; then
-            echo "ERROR: JWT_SECRET_KEY está vacío"
-            exit 1
+          # Valores por defecto para JWT si no están configurados
+          JWT_ISSUER="${{ secrets.JWT_ISSUER }}"
+          JWT_AUDIENCE="${{ secrets.JWT_AUDIENCE }}"
+          if [ -z "$JWT_ISSUER" ]; then
+            JWT_ISSUER="GestionAcademicaAPI"
+            echo "⚠️  Usando JWT_ISSUER por defecto: $JWT_ISSUER"
+          fi
+          if [ -z "$JWT_AUDIENCE" ]; then
+            JWT_AUDIENCE="GestionAcademicaClients"
+            echo "⚠️  Usando JWT_AUDIENCE por defecto: $JWT_AUDIENCE"
           fi
           
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-            --region ${{ env.REGION }} \
-            --platform managed \
-            --allow-unauthenticated \
-            --port 8080 \
-            --timeout 300 \
-            --memory 512Mi \
-            --cpu 1 \
-            --max-instances 10 \
-            --quiet \
-            --verbosity=info \
-            --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
-            --set-env-vars ConnectionStrings__DefaultConnection="${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" \
-            --set-env-vars JwtSettings__SecretKey="${{ secrets.JWT_SECRET_KEY }}" \
-            --set-env-vars JwtSettings__Issuer="${{ secrets.JWT_ISSUER }}" \
-            --set-env-vars JwtSettings__Audience="${{ secrets.JWT_AUDIENCE }}" \
-            --set-env-vars JwtSettings__ExpirationMinutes=30 \
-            --set-env-vars JwtSettings__RefreshTokenExpirationDays=7 \
-            --update-labels managed-by=github-actions,commit-sha=${{ github.sha }} \
-            --format=json
+          # Agregar connection string solo si está configurado
+          if [ -n "${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" ]; then
+            gcloud run deploy ${{ env.SERVICE_NAME }} \
+              --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+              --region ${{ env.REGION }} \
+              --platform managed \
+              --allow-unauthenticated \
+              --port 8080 \
+              --timeout 300 \
+              --memory 512Mi \
+              --cpu 1 \
+              --max-instances 10 \
+              --quiet \
+              --verbosity=info \
+              --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
+              --set-env-vars ConnectionStrings__DefaultConnection="${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" \
+              --set-env-vars JwtSettings__SecretKey="${{ secrets.JWT_SECRET_KEY }}" \
+              --set-env-vars JwtSettings__Issuer="$JWT_ISSUER" \
+              --set-env-vars JwtSettings__Audience="$JWT_AUDIENCE" \
+              --set-env-vars JwtSettings__ExpirationMinutes=30 \
+              --set-env-vars JwtSettings__RefreshTokenExpirationDays=7 \
+              --update-labels managed-by=github-actions,commit-sha=${{ github.sha }} \
+              --format=json
+          else
+            echo "⚠️  CLOUD_RUN_CONNECTION_STRING no configurado, la aplicación usará la connection string por defecto"
+            gcloud run deploy ${{ env.SERVICE_NAME }} \
+              --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+              --region ${{ env.REGION }} \
+              --platform managed \
+              --allow-unauthenticated \
+              --port 8080 \
+              --timeout 300 \
+              --memory 512Mi \
+              --cpu 1 \
+              --max-instances 10 \
+              --quiet \
+              --verbosity=info \
+              --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
+              --set-env-vars JwtSettings__SecretKey="${{ secrets.JWT_SECRET_KEY }}" \
+              --set-env-vars JwtSettings__Issuer="$JWT_ISSUER" \
+              --set-env-vars JwtSettings__Audience="$JWT_AUDIENCE" \
+              --set-env-vars JwtSettings__ExpirationMinutes=30 \
+              --set-env-vars JwtSettings__RefreshTokenExpirationDays=7 \
+              --update-labels managed-by=github-actions,commit-sha=${{ github.sha }} \
+              --format=json
+          fi
 
       - name: Show deployed URL
         run: |
