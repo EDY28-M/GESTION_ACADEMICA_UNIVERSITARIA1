@@ -16,7 +16,7 @@ on:
       - master
 
 env:
-  SERVICE_NAME: api-rest-cursosacademicos
+  SERVICE_NAME: api-rest-cursosacademicos 
   REGION: us-central1
 
 jobs:
