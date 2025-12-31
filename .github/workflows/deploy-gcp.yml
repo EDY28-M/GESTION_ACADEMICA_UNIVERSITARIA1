@@ -98,6 +98,69 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Required Secrets
+        run: |
+          echo "Verificando que todos los secrets estén configurados..."
+          MISSING_SECRETS=0
+          
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "❌ ERROR: GCP_SA_KEY secret no está configurado"
+            MISSING_SECRETS=1
+          else
+            echo "✅ GCP_SA_KEY está configurado"
+          fi
+          
+          if [ -z "${{ secrets.CLOUD_RUN_CONNECTION_STRING }}" ]; then
+            echo "❌ ERROR: CLOUD_RUN_CONNECTION_STRING secret no está configurado"
+            MISSING_SECRETS=1
+          else
+            echo "✅ CLOUD_RUN_CONNECTION_STRING está configurado"
+          fi
+          
+          if [ -z "${{ secrets.JWT_SECRET_KEY }}" ]; then
+            echo "❌ ERROR: JWT_SECRET_KEY secret no está configurado"
+            MISSING_SECRETS=1
+          else
+            echo "✅ JWT_SECRET_KEY está configurado (longitud: $(echo -n '${{ secrets.JWT_SECRET_KEY }}' | wc -c) caracteres)"
+          fi
+          
+          if [ -z "${{ secrets.JWT_ISSUER }}" ]; then
+            echo "❌ ERROR: JWT_ISSUER secret no está configurado"
+            MISSING_SECRETS=1
+          else
+            echo "✅ JWT_ISSUER está configurado: ${{ secrets.JWT_ISSUER }}"
+          fi
+          
+          if [ -z "${{ secrets.JWT_AUDIENCE }}" ]; then
+            echo "❌ ERROR: JWT_AUDIENCE secret no está configurado"
+            MISSING_SECRETS=1
+          else
+            echo "✅ JWT_AUDIENCE está configurado: ${{ secrets.JWT_AUDIENCE }}"
+          fi
+          
+          if [ $MISSING_SECRETS -eq 1 ]; then
+            echo ""
+            echo "=========================================="
+            echo "FALTAN SECRETS REQUERIDOS"
+            echo "=========================================="
+            echo "Ve a: Settings → Secrets and variables → Actions"
+            echo "Y configura los secrets faltantes."
+            echo ""
+            echo "Secrets requeridos:"
+            echo "  - GCP_SA_KEY"
+            echo "  - GCP_PROJECT_ID"
+            echo "  - CLOUD_RUN_CONNECTION_STRING"
+            echo "  - JWT_SECRET_KEY"
+            echo "  - JWT_ISSUER"
+            echo "  - JWT_AUDIENCE"
+            echo ""
+            echo "Consulta GITHUB_SECRETS_GUIDE.md para más información"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Todos los secrets están configurados correctamente"
+
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -123,6 +186,15 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
+          echo "Desplegando a Cloud Run..."
+          echo "Verificando que los secrets no estén vacíos..."
+          
+          # Verificar que los secrets no estén vacíos (doble verificación)
+          if [ -z "${{ secrets.JWT_SECRET_KEY }}" ]; then
+            echo "ERROR: JWT_SECRET_KEY está vacío"
+            exit 1
+          fi
+          
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \

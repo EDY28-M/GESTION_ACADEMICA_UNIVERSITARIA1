@@ -42,13 +42,37 @@ builder.Services.AddHealthChecks()
 
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"];
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
+var jwtAudience = builder.Configuration["JwtSettings:Audience"];
+
+// Validar configuración JWT antes de continuar
+var missingConfigs = new List<string>();
 if (string.IsNullOrWhiteSpace(jwtSecretKey))
 {
-    var errorMsg = "JWT SecretKey no configurada. Configura JwtSettings__SecretKey como variable de entorno.";
-    Console.WriteLine($"[ERROR] {errorMsg}");
-    throw new InvalidOperationException(errorMsg);
+    missingConfigs.Add("JwtSettings__SecretKey");
 }
-Console.WriteLine($"[CONFIG] JWT SecretKey configurada (longitud: {jwtSecretKey.Length} caracteres)");
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    missingConfigs.Add("JwtSettings__Issuer");
+}
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    missingConfigs.Add("JwtSettings__Audience");
+}
+
+if (missingConfigs.Any())
+{
+    var errorMsg = $"[ERROR CRÍTICO] Faltan variables de entorno JWT:\n" +
+                   string.Join("\n", missingConfigs.Select(c => $"  - {c}")) +
+                   $"\n\nEstas deben estar configuradas como secrets en GitHub Actions o como variables de entorno en Cloud Run.";
+    Console.WriteLine(errorMsg);
+    Console.WriteLine($"[INFO] Revisa la configuración en GitHub: Settings → Secrets and variables → Actions");
+    throw new InvalidOperationException($"Faltan variables de entorno JWT: {string.Join(", ", missingConfigs)}");
+}
+
+Console.WriteLine($"[CONFIG] JWT SecretKey configurada (longitud: {jwtSecretKey?.Length ?? 0} caracteres)");
+Console.WriteLine($"[CONFIG] JWT Issuer: {jwtIssuer ?? "N/A"}");
+Console.WriteLine($"[CONFIG] JWT Audience: {jwtAudience ?? "N/A"}");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -63,9 +87,9 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+        ValidIssuer = jwtIssuer!,
+        ValidAudience = jwtAudience!,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey!)),
         ClockSkew = TimeSpan.Zero // Eliminar tolerancia de tiempo por defecto (5 minutos)
     };
 
@@ -79,7 +103,8 @@ builder.Services.AddAuthentication(options =>
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine($"Token validated for user: {context.Principal?.Identity?.Name}");
+            var userName = context.Principal?.Identity?.Name ?? "Unknown";
+            Console.WriteLine($"Token validated for user: {userName}");
             return Task.CompletedTask;
         },
         // Configurar autenticación para SignalR
