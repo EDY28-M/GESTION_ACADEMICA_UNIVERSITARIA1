@@ -13,6 +13,19 @@ using API_REST_CURSOSACADEMICOS.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ========================================
+// CONFIGURACIÓN DE PUERTO PARA CLOUD RUN
+// ========================================
+// Cloud Run inyecta la variable PORT automáticamente
+// Leemos el puerto y configuramos la URL antes de construir la app
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+// Logging inicial para debugging
+Console.WriteLine($"[INICIO] Puerto configurado: {port}");
+Console.WriteLine($"[INICIO] ASPNETCORE_ENVIRONMENT: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
+Console.WriteLine($"[INICIO] PORT (env): {Environment.GetEnvironmentVariable("PORT")}");
+
 // Add services to the container.
 
 builder.Services.AddApplication();
@@ -24,8 +37,14 @@ builder.Services.AddHealthChecks()
     .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"));
 
 // Configurar JWT Authentication
-var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"] 
-    ?? throw new InvalidOperationException("JWT SecretKey no configurada");
+var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"];
+if (string.IsNullOrWhiteSpace(jwtSecretKey))
+{
+    var errorMsg = "JWT SecretKey no configurada. Configura JwtSettings__SecretKey como variable de entorno.";
+    Console.WriteLine($"[ERROR] {errorMsg}");
+    throw new InvalidOperationException(errorMsg);
+}
+Console.WriteLine($"[CONFIG] JWT SecretKey configurada (longitud: {jwtSecretKey.Length} caracteres)");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -133,6 +152,11 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Logging después de construir la app
+Console.WriteLine($"[APP] Aplicación construida correctamente");
+Console.WriteLine($"[APP] Ambiente: {app.Environment.EnvironmentName}");
+Console.WriteLine($"[APP] URLs configuradas: {string.Join(", ", app.Urls)}");
+
 // Configure the HTTP request pipeline.
 // Configure the HTTP request pipeline.
 app.UseSwagger();
@@ -196,5 +220,9 @@ app.MapGet("/info", () => Results.Ok(new {
     timestamp = DateTime.UtcNow,
     version = "1.0.0"
 }));
+
+Console.WriteLine($"[LISTO] Aplicación iniciando en puerto {port}");
+Console.WriteLine($"[LISTO] Health check disponible en: /health");
+Console.WriteLine($"[LISTO] Swagger disponible en: /swagger");
 
 app.Run();

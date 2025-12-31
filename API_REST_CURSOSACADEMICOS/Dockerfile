@@ -33,7 +33,8 @@ EXPOSE 8081
 COPY --from=publish /app/publish .
 
 # Configurar variables de entorno
-ENV ASPNETCORE_URLS=http://+:8080
+# NOTA: No forzamos ASPNETCORE_URLS aquí porque Cloud Run inyecta PORT
+# La aplicación leerá PORT desde Program.cs
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Punto de entrada de la aplicación
