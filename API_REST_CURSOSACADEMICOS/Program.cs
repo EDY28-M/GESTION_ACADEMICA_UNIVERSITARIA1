@@ -15,17 +15,21 @@ using API_REST_CURSOSACADEMICOS.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // ========================================
-// CONFIGURACIÓN DE PUERTO PARA CLOUD RUN
+// CONFIGURACIÓN DE PUERTO
 // ========================================
-// Cloud Run inyecta la variable PORT automáticamente
-// Leemos el puerto y configuramos la URL antes de construir la app
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+// Solo configurar UseUrls si hay variable PORT (producción/Cloud Run)
+// En desarrollo, usar el puerto de launchSettings.json (5251)
+var portEnv = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(portEnv))
+{
+    // Producción: usar la variable PORT de Cloud Run
+    builder.WebHost.UseUrls($"http://0.0.0.0:{portEnv}");
+}
+// En desarrollo, no usar UseUrls para que respete launchSettings.json
 
 // Logging inicial para debugging
-Console.WriteLine($"[INICIO] Puerto configurado: {port}");
 Console.WriteLine($"[INICIO] ASPNETCORE_ENVIRONMENT: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
-Console.WriteLine($"[INICIO] PORT (env): {Environment.GetEnvironmentVariable("PORT")}");
+Console.WriteLine($"[INICIO] PORT (env): {portEnv ?? "No configurado - usando launchSettings.json"}");
 
 // Add services to the container.
 
@@ -121,7 +125,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configurar serialización JSON en camelCase para compatibilidad con frontend
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 // Configurar SignalR para notificaciones en tiempo real
 builder.Services.AddSignalR();
@@ -244,7 +254,7 @@ app.MapGet("/info", () => Results.Ok(new {
     version = "1.0.0"
 }));
 
-Console.WriteLine($"[LISTO] Aplicación iniciando en puerto {port}");
+Console.WriteLine($"[LISTO] Aplicación iniciando en: {string.Join(", ", app.Urls)}");
 Console.WriteLine($"[LISTO] Health check disponible en: /health");
 Console.WriteLine($"[LISTO] Swagger disponible en: /swagger");
 

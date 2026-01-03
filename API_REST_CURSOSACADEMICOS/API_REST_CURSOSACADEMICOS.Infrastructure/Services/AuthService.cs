@@ -36,7 +36,17 @@ namespace API_REST_CURSOSACADEMICOS.Services
         {
             try
             {
+                _logger.LogInformation($"Iniciando LoginAsync para: {loginDto.Email}");
+
+                // Verificar conexión a la base de datos
+                if (!await _context.Database.CanConnectAsync())
+                {
+                    _logger.LogError("No se puede conectar a la base de datos");
+                    throw new InvalidOperationException("No se puede conectar a la base de datos");
+                }
+
                 // Buscar usuario por email
+                _logger.LogInformation($"Buscando usuario con email: {loginDto.Email}");
                 var usuario = await _context.Usuarios
                     .FirstOrDefaultAsync(u => u.Email.ToLower() == loginDto.Email.ToLower());
 
@@ -71,15 +81,43 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     }
                 }
 
+                // Verificar que el usuario tenga contraseña configurada
+                if (string.IsNullOrEmpty(usuario.PasswordHash))
+                {
+                    _logger.LogWarning($"Usuario {loginDto.Email} no tiene contraseña configurada");
+                    return null;
+                }
+
                 // Verificar contraseña con BCrypt
-                if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, usuario.PasswordHash))
+                bool passwordValid = false;
+                try
+                {
+                    passwordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, usuario.PasswordHash);
+                }
+                catch (Exception bcryptEx)
+                {
+                    _logger.LogError(bcryptEx, $"Error al verificar contraseña con BCrypt para: {loginDto.Email}");
+                    return null;
+                }
+
+                if (!passwordValid)
                 {
                     _logger.LogWarning($"Contraseña incorrecta para: {loginDto.Email}");
                     return null;
                 }
 
                 // Generar tokens
-                var token = GenerateJwtToken(usuario);
+                string token;
+                try
+                {
+                    token = GenerateJwtToken(usuario);
+                }
+                catch (Exception jwtEx)
+                {
+                    _logger.LogError(jwtEx, $"Error al generar token JWT para: {loginDto.Email}");
+                    throw; // Re-lanzar para que el controlador lo maneje
+                }
+                
                 var refreshToken = GenerateRefreshToken();
 
                 // Actualizar refresh token y último acceso
@@ -88,7 +126,9 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 usuario.UltimoAcceso = DateTime.UtcNow;
                 usuario.FechaActualizacion = DateTime.UtcNow;
 
+                _logger.LogInformation($"Guardando cambios en la base de datos para: {loginDto.Email}");
                 await _context.SaveChangesAsync();
+                _logger.LogInformation($"Cambios guardados exitosamente para: {loginDto.Email}");
 
                 _logger.LogInformation($"Login exitoso para: {loginDto.Email}");
 
@@ -266,30 +306,54 @@ namespace API_REST_CURSOSACADEMICOS.Services
 
         private string GenerateJwtToken(Usuario usuario)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtSecretKey()));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
+            try
             {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Email, usuario.Email),
-                new Claim(ClaimTypes.Name, usuario.NombreCompleto),
-                new Claim(ClaimTypes.GivenName, usuario.Nombres),
-                new Claim(ClaimTypes.Surname, usuario.Apellidos),
-                new Claim(ClaimTypes.Role, usuario.Rol),
-                new Claim("estado", usuario.Estado.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                var secretKey = GetJwtSecretKey();
+                if (string.IsNullOrEmpty(secretKey))
+                {
+                    throw new InvalidOperationException("JWT SecretKey no está configurada");
+                }
 
-            var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(GetTokenExpirationMinutes()),
-                signingCredentials: credentials
-            );
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                // Validar que los campos necesarios no sean null
+                var nombreCompleto = usuario.NombreCompleto ?? $"{usuario.Nombres ?? ""} {usuario.Apellidos ?? ""}".Trim();
+                if (string.IsNullOrEmpty(nombreCompleto))
+                {
+                    nombreCompleto = usuario.Email ?? "Usuario";
+                }
+
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                    new Claim(ClaimTypes.Email, usuario.Email ?? ""),
+                    new Claim(ClaimTypes.Name, nombreCompleto),
+                    new Claim(ClaimTypes.GivenName, usuario.Nombres ?? ""),
+                    new Claim(ClaimTypes.Surname, usuario.Apellidos ?? ""),
+                    new Claim(ClaimTypes.Role, usuario.Rol ?? ""),
+                    new Claim("estado", usuario.Estado.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
+
+                var issuer = _configuration["JwtSettings:Issuer"] ?? "GestionAcademicaAPI";
+                var audience = _configuration["JwtSettings:Audience"] ?? "GestionAcademicaClients";
+
+                var token = new JwtSecurityToken(
+                    issuer: issuer,
+                    audience: audience,
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddMinutes(GetTokenExpirationMinutes()),
+                    signingCredentials: credentials
+                );
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error al generar token JWT para usuario {usuario?.Email ?? "unknown"}");
+                throw;
+            }
         }
 
         private string GenerateRefreshToken()

@@ -8,6 +8,7 @@ public interface ITrabajoService
     Task<List<TrabajoDto>> GetTrabajosPorCursoAsync(int idCurso);
     Task<List<TrabajoDto>> GetTrabajosPorDocenteAsync(int idDocente);
     Task<TrabajoDto?> GetTrabajoAsync(int id);
+    Task<List<TrabajoPendienteDto>> GetTrabajosPendientesAsync(int idDocente);
     Task<(bool success, string? error, TrabajoDto? created)> CreateTrabajoAsync(TrabajoCreateDto dto, int idDocente);
     Task<(bool notFound, bool success, string? error)> UpdateTrabajoAsync(int id, TrabajoUpdateDto dto, int idDocente);
     Task<(bool notFound, bool success, string? error)> DeleteTrabajoAsync(int id, int idDocente);

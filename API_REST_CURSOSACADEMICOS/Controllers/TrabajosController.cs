@@ -103,6 +103,20 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         }
 
         /// <summary>
+        /// Obtener trabajos pendientes del docente (con entregas sin calificar)
+        /// </summary>
+        [HttpGet("docente/pendientes")]
+        [Authorize(Roles = "Docente")]
+        public async Task<ActionResult<List<TrabajoPendienteDto>>> GetTrabajosPendientes()
+        {
+            if (!User.TryGetDocenteId(out int docenteId))
+                return Unauthorized("No se pudo identificar al docente");
+
+            var trabajosPendientes = await _trabajoService.GetTrabajosPendientesAsync(docenteId);
+            return Ok(trabajosPendientes);
+        }
+
+        /// <summary>
         /// Obtener un trabajo específico
         /// </summary>
         [HttpGet("{id}")]
@@ -215,15 +229,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 dto.IdTipoEvaluacion = idTipoEvaluacion;
             }
 
-            if (Request.Form.ContainsKey("NumeroTrabajo") && int.TryParse(Request.Form["NumeroTrabajo"].ToString(), out int numeroTrabajo))
-            {
-                dto.NumeroTrabajo = numeroTrabajo;
-            }
-
-            if (Request.Form.ContainsKey("TotalTrabajos") && int.TryParse(Request.Form["TotalTrabajos"].ToString(), out int totalTrabajos))
-            {
-                dto.TotalTrabajos = totalTrabajos;
-            }
 
                 var (success, error, created) = await _trabajoService.CreateTrabajoAsync(dto, docenteId);
                 
@@ -310,15 +315,6 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
                 dto.IdTipoEvaluacion = idTipoEvaluacion;
             }
 
-            if (Request.Form.ContainsKey("NumeroTrabajo") && int.TryParse(Request.Form["NumeroTrabajo"].ToString(), out int numeroTrabajo))
-            {
-                dto.NumeroTrabajo = numeroTrabajo;
-            }
-
-            if (Request.Form.ContainsKey("TotalTrabajos") && int.TryParse(Request.Form["TotalTrabajos"].ToString(), out int totalTrabajos))
-            {
-                dto.TotalTrabajos = totalTrabajos;
-            }
 
             var (notFound, success, error) = await _trabajoService.UpdateTrabajoAsync(id, dto, docenteId);
             

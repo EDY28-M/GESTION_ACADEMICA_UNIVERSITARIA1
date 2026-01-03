@@ -50,27 +50,44 @@ namespace API_REST_CURSOSACADEMICOS.Controllers
         {
             try
             {
+                _logger.LogInformation($"Intento de login para: {loginDto?.Email ?? "null"}");
+
+                if (loginDto == null)
+                {
+                    _logger.LogWarning("LoginDto es null");
+                    return BadRequest(new { message = "Datos de entrada inválidos" });
+                }
+
                 if (!ModelState.IsValid)
                 {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList();
+                    _logger.LogWarning($"ModelState inválido: {string.Join(", ", errors)}");
                     return BadRequest(new { 
                         message = "Datos de entrada inválidos", 
-                        errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                        errors = errors
                     });
                 }
 
+                _logger.LogInformation($"Validando credenciales para: {loginDto.Email}");
                 var result = await _authService.LoginAsync(loginDto);
 
                 if (result == null)
                 {
+                    _logger.LogWarning($"Login fallido para: {loginDto.Email}");
                     return Unauthorized(new { message = "Email o contraseña incorrectos" });
                 }
 
+                _logger.LogInformation($"Login exitoso para: {loginDto.Email}");
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error en Login");
-                return StatusCode(500, new { message = "Error interno del servidor" });
+                _logger.LogError(ex, $"Error en Login para: {loginDto?.Email ?? "null"}");
+                return StatusCode(500, new { 
+                    message = "Error interno del servidor",
+                    detail = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
             }
         }
 

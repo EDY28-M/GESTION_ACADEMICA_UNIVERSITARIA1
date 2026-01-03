@@ -86,6 +86,72 @@ namespace API_REST_CURSOSACADEMICOS.Services
             return trabajo != null ? MapToDto(trabajo) : null;
         }
 
+        public async Task<List<TrabajoPendienteDto>> GetTrabajosPendientesAsync(int idDocente)
+        {
+            try
+            {
+                // Obtener TODOS los trabajos activos del docente (no solo los que tienen entregas pendientes)
+                var trabajos = await _context.Set<TrabajoEncargado>()
+                    .Include(t => t.Curso)
+                    .Include(t => t.Entregas)
+                    .Where(t => t.IdDocente == idDocente && t.Activo)
+                    .OrderByDescending(t => t.FechaCreacion) // Más recientes primero
+                    .ToListAsync();
+
+                _logger.LogInformation($"Encontrados {trabajos.Count} trabajos activos para el docente {idDocente}");
+
+                if (trabajos.Count == 0)
+                {
+                    return new List<TrabajoPendienteDto>();
+                }
+
+                var trabajosPendientes = new List<TrabajoPendienteDto>();
+
+                foreach (var trabajo in trabajos)
+                {
+                    // Contar entregas sin calificar
+                    var entregasPendientes = trabajo.Entregas
+                        .Where(e => e.Calificacion == null)
+                        .ToList();
+
+                    // Incluir el trabajo si tiene entregas pendientes O si aún no tiene entregas (trabajo recién creado)
+                    if (entregasPendientes.Any() || trabajo.Entregas.Count == 0)
+                    {
+                        // Obtener fecha de última entrega pendiente, o fecha de creación si no hay entregas
+                        var fechaUltimaEntrega = entregasPendientes.Any()
+                            ? entregasPendientes.OrderByDescending(e => e.FechaEntrega).FirstOrDefault()?.FechaEntrega
+                            : null;
+
+                        trabajosPendientes.Add(new TrabajoPendienteDto
+                        {
+                            Id = trabajo.Id,
+                            IdCurso = trabajo.IdCurso,
+                            NombreCurso = trabajo.Curso?.NombreCurso,
+                            Titulo = trabajo.Titulo,
+                            FechaLimite = trabajo.FechaLimite,
+                            TotalEntregas = trabajo.Entregas.Count,
+                            EntregasPendientesCalificar = entregasPendientes.Count,
+                            FechaUltimaEntrega = fechaUltimaEntrega
+                        });
+                    }
+                }
+
+                // Ordenar por fecha de última entrega (más recientes primero), luego por fecha límite, luego por fecha de creación
+                var resultado = trabajosPendientes
+                    .OrderByDescending(t => t.FechaUltimaEntrega ?? t.FechaLimite)
+                    .ToList();
+
+                _logger.LogInformation($"Retornando {resultado.Count} trabajos pendientes para el docente {idDocente}");
+                
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error al obtener trabajos pendientes para el docente {idDocente}");
+                throw;
+            }
+        }
+
         public async Task<(bool success, string? error, TrabajoDto? created)> CreateTrabajoAsync(
             TrabajoCreateDto dto, int idDocente)
         {
@@ -118,65 +184,6 @@ namespace API_REST_CURSOSACADEMICOS.Services
                         return (false, "El tipo de evaluación no existe o no está activo para este curso", null);
                     }
 
-                    // Validar división de evaluación
-                    if (dto.NumeroTrabajo.HasValue || dto.TotalTrabajos.HasValue)
-                    {
-                        if (!dto.NumeroTrabajo.HasValue || !dto.TotalTrabajos.HasValue)
-                        {
-                            return (false, "Si se divide una evaluación, debe especificar tanto el número de trabajo como el total de trabajos", null);
-                        }
-
-                        if (dto.NumeroTrabajo.Value < 1 || dto.NumeroTrabajo.Value > dto.TotalTrabajos.Value)
-                        {
-                            return (false, "El número de trabajo debe estar entre 1 y el total de trabajos", null);
-                        }
-
-                        if (dto.TotalTrabajos.Value < 1 || dto.TotalTrabajos.Value > 10)
-                        {
-                            return (false, "El total de trabajos debe estar entre 1 y 10", null);
-                        }
-
-                        // Verificar que no exista ya un trabajo con el mismo número para este tipo de evaluación
-                        var trabajoExistente = await _context.Set<TrabajoEncargado>()
-                            .FirstOrDefaultAsync(t => t.IdCurso == dto.IdCurso 
-                                && t.IdTipoEvaluacion == dto.IdTipoEvaluacion.Value
-                                && t.NumeroTrabajo == dto.NumeroTrabajo.Value
-                                && t.Activo);
-
-                        if (trabajoExistente != null)
-                        {
-                            return (false, $"Ya existe un trabajo número {dto.NumeroTrabajo.Value} para este tipo de evaluación", null);
-                        }
-
-                        // Verificar consistencia con otros trabajos del mismo tipo
-                        var otrosTrabajos = await _context.Set<TrabajoEncargado>()
-                            .Where(t => t.IdCurso == dto.IdCurso 
-                                && t.IdTipoEvaluacion == dto.IdTipoEvaluacion.Value
-                                && t.NumeroTrabajo.HasValue
-                                && t.Activo)
-                            .OrderBy(t => t.NumeroTrabajo)
-                            .ToListAsync();
-
-                        if (otrosTrabajos.Any())
-                        {
-                            var totalTrabajosExistente = otrosTrabajos.First().TotalTrabajos;
-                            if (totalTrabajosExistente.HasValue && totalTrabajosExistente.Value != dto.TotalTrabajos.Value)
-                            {
-                                var numerosExistentes = string.Join(", ", otrosTrabajos.Select(t => t.NumeroTrabajo));
-                                return (false, $"Ya existe una partición de este tipo de evaluación con {totalTrabajosExistente.Value} trabajos. Trabajos existentes: {numerosExistentes}. Debe usar el mismo total de trabajos.", null);
-                            }
-
-                            // Informar sobre trabajos existentes
-                            var numerosDisponibles = Enumerable.Range(1, dto.TotalTrabajos.Value)
-                                .Where(n => !otrosTrabajos.Any(t => t.NumeroTrabajo == n))
-                                .ToList();
-                            
-                            if (numerosDisponibles.Count == 0)
-                            {
-                                return (false, $"Ya se han creado todos los {dto.TotalTrabajos.Value} trabajos para este tipo de evaluación. No se pueden crear más.", null);
-                            }
-                        }
-                    }
                 }
 
                 var trabajo = new TrabajoEncargado
@@ -188,21 +195,8 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     FechaCreacion = DateTime.UtcNow,
                     FechaLimite = dto.FechaLimite,
                     Activo = true,
-                    IdTipoEvaluacion = dto.IdTipoEvaluacion,
-                    NumeroTrabajo = dto.NumeroTrabajo,
-                    TotalTrabajos = dto.TotalTrabajos
+                    IdTipoEvaluacion = dto.IdTipoEvaluacion
                 };
-
-                // Calcular peso individual si se divide la evaluación
-                if (tipoEvaluacion != null && dto.TotalTrabajos.HasValue && dto.TotalTrabajos.Value > 1)
-                {
-                    trabajo.PesoIndividual = tipoEvaluacion.Peso / dto.TotalTrabajos.Value;
-                    _logger.LogInformation($"Trabajo dividido - Tipo: {tipoEvaluacion.Nombre}, Peso total: {tipoEvaluacion.Peso}%, Peso individual: {trabajo.PesoIndividual}%");
-                }
-                else if (tipoEvaluacion != null)
-                {
-                    trabajo.PesoIndividual = tipoEvaluacion.Peso;
-                }
 
                 _context.Set<TrabajoEncargado>().Add(trabajo);
                 await _context.SaveChangesAsync();
@@ -293,45 +287,6 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     if (!tieneEntregasCalificadas)
                     {
                         trabajo.IdTipoEvaluacion = null;
-                    trabajo.NumeroTrabajo = null;
-                    trabajo.TotalTrabajos = null;
-                    trabajo.PesoIndividual = null;
-                    }
-                }
-
-                // Actualizar división de evaluación si se proporciona
-                if (dto.NumeroTrabajo.HasValue || dto.TotalTrabajos.HasValue)
-                {
-                    if (!dto.NumeroTrabajo.HasValue || !dto.TotalTrabajos.HasValue)
-                    {
-                        return (false, false, "Si se divide una evaluación, debe especificar tanto el número de trabajo como el total de trabajos");
-                    }
-
-                    // Verificar que no haya entregas calificadas antes de cambiar la división
-                    var tieneEntregasCalificadas = await _context.Set<TrabajoEntrega>()
-                        .AnyAsync(e => e.IdTrabajo == id && e.Calificacion.HasValue);
-                    
-                    if (tieneEntregasCalificadas && (trabajo.NumeroTrabajo != dto.NumeroTrabajo || trabajo.TotalTrabajos != dto.TotalTrabajos))
-                    {
-                        return (false, false, "No se puede modificar la división de evaluación si ya hay entregas calificadas");
-                    }
-
-                    trabajo.NumeroTrabajo = dto.NumeroTrabajo.Value;
-                    trabajo.TotalTrabajos = dto.TotalTrabajos.Value;
-
-                    // Recalcular peso individual
-                    if (trabajo.IdTipoEvaluacion.HasValue)
-                    {
-                        tipoEvaluacion ??= await _context.TiposEvaluacion
-                            .FirstOrDefaultAsync(t => t.Id == trabajo.IdTipoEvaluacion.Value);
-                        
-                        if (tipoEvaluacion != null)
-                        {
-                            trabajo.PesoIndividual = tipoEvaluacion.Peso / dto.TotalTrabajos.Value;
-                            
-                            // Actualizar pesos de otros trabajos del mismo tipo
-                            await RecalcularPesosTrabajosAsync(trabajo.IdCurso, trabajo.IdTipoEvaluacion.Value, dto.TotalTrabajos.Value);
-                        }
                     }
                 }
 
@@ -874,95 +829,8 @@ namespace API_REST_CURSOSACADEMICOS.Services
                     _logger.LogInformation($"Matrícula encontrada: ID {matricula.Id}, Estado: {matricula.Estado}, Período: {matricula.IdPeriodo}");
                 }
 
-                // Verificar si el trabajo está dividido
-                var trabajo = entrega.Trabajo;
-                bool esTrabajoDividido = trabajo != null && trabajo.TotalTrabajos.HasValue && trabajo.TotalTrabajos.Value > 1;
-
-                if (esTrabajoDividido)
-                {
-                    // Si el trabajo está dividido, verificar si todos los trabajos están calificados
-                    var todosTrabajos = await _context.Set<TrabajoEncargado>()
-                        .Where(t => t.IdCurso == trabajo.IdCurso
-                            && t.IdTipoEvaluacion == trabajo.IdTipoEvaluacion
-                            && t.NumeroTrabajo.HasValue
-                            && t.Activo)
-                        .OrderBy(t => t.NumeroTrabajo)
-                        .ToListAsync();
-
-                    var entregasTrabajos = new List<(int NumeroTrabajo, decimal? Calificacion)>();
-                    
-                    foreach (var t in todosTrabajos)
-                    {
-                        var entregaEstudiante = await _context.Set<TrabajoEntrega>()
-                            .FirstOrDefaultAsync(e => e.IdTrabajo == t.Id && e.IdEstudiante == entrega.IdEstudiante);
-                        
-                        entregasTrabajos.Add((t.NumeroTrabajo!.Value, entregaEstudiante?.Calificacion));
-                    }
-
-                    // Verificar si todos los trabajos están calificados
-                    bool todosCalificados = entregasTrabajos.All(e => e.Calificacion.HasValue);
-
-                    if (!todosCalificados)
-                    {
-                        _logger.LogInformation($"Trabajo dividido - Faltan trabajos por calificar. Total: {todosTrabajos.Count}, Calificados: {entregasTrabajos.Count(e => e.Calificacion.HasValue)}");
-                        return; // No registrar nota hasta que todos estén calificados
-                    }
-
-                    // Calcular promedio ponderado de todos los trabajos
-                    decimal promedioPonderado = 0;
-                    decimal pesoTotalUsado = 0;
-                    
-                    foreach (var (numero, calificacion) in entregasTrabajos)
-                    {
-                        var trabajoCorrespondiente = todosTrabajos.First(t => t.NumeroTrabajo == numero);
-                        var pesoIndividual = trabajoCorrespondiente.PesoIndividual ?? tipoEvaluacion.Peso / todosTrabajos.Count;
-                        
-                        promedioPonderado += calificacion!.Value * pesoIndividual;
-                        pesoTotalUsado += pesoIndividual;
-                    }
-
-                    if (pesoTotalUsado > 0)
-                    {
-                        promedioPonderado = promedioPonderado / pesoTotalUsado * tipoEvaluacion.Peso / 100m;
-                    }
-
-                    _logger.LogInformation($"Trabajo dividido - Todos calificados. Promedio calculado: {promedioPonderado:F2}");
-
-                    // Registrar o actualizar la nota con el promedio
-                    var tipoEvaluacionNombre = tipoEvaluacion.Nombre;
-                    var notaExistente = await _context.Notas
-                        .FirstOrDefaultAsync(n => n.IdMatricula == matricula.Id 
-                            && n.TipoEvaluacion == tipoEvaluacionNombre);
-
-                    if (notaExistente != null)
-                    {
-                        notaExistente.NotaValor = promedioPonderado;
-                        notaExistente.Peso = tipoEvaluacion.Peso;
-                        notaExistente.Fecha = entrega.FechaCalificacion ?? DateTime.UtcNow;
-                        notaExistente.Observaciones = entrega.Observaciones;
-                        notaExistente.FechaRegistro = DateTime.UtcNow;
-                        _logger.LogInformation($"Nota actualizada (promedio dividido) - MatrículaId: {matricula.Id}, TipoEvaluacion: '{tipoEvaluacion.Nombre}', Nota: {promedioPonderado:F2}, Peso: {tipoEvaluacion.Peso}");
-                    }
-                    else
-                    {
-                        var nuevaNota = new Nota
-                        {
-                            IdMatricula = matricula.Id,
-                            TipoEvaluacion = tipoEvaluacion.Nombre.Trim(),
-                            NotaValor = promedioPonderado,
-                            Peso = tipoEvaluacion.Peso,
-                            Fecha = entrega.FechaCalificacion ?? DateTime.UtcNow,
-                            FechaRegistro = DateTime.UtcNow,
-                            Observaciones = entrega.Observaciones
-                        };
-                        _context.Notas.Add(nuevaNota);
-                        _logger.LogInformation($"Nota creada (promedio dividido) - MatrículaId: {matricula.Id}, TipoEvaluacion: {tipoEvaluacion.Nombre}, Nota: {promedioPonderado:F2}, Peso: {tipoEvaluacion.Peso}");
-                    }
-                }
-                else
-                {
-                    // Trabajo no dividido - comportamiento normal
-                    var tipoEvaluacionNombre = tipoEvaluacion.Nombre;
+                // Registrar nota del trabajo
+                var tipoEvaluacionNombre = tipoEvaluacion.Nombre;
                     var notaExistente = await _context.Notas
                         .FirstOrDefaultAsync(n => n.IdMatricula == matricula.Id 
                             && n.TipoEvaluacion == tipoEvaluacionNombre);
@@ -996,7 +864,6 @@ namespace API_REST_CURSOSACADEMICOS.Services
                         _context.Notas.Add(nuevaNota);
                         _logger.LogInformation($"Nota creada - MatrículaId: {matricula.Id}, TipoEvaluacion: {tipoEvaluacion.Nombre}, Nota: {entrega.Calificacion.Value}, Peso: {tipoEvaluacion.Peso}");
                     }
-                }
 
                 await _context.SaveChangesAsync();
                 _logger.LogInformation($"Nota guardada exitosamente en la base de datos");
@@ -1048,52 +915,10 @@ namespace API_REST_CURSOSACADEMICOS.Services
                 YaEntregado = false,
                 IdTipoEvaluacion = trabajo.IdTipoEvaluacion,
                 NombreTipoEvaluacion = trabajo.TipoEvaluacion?.Nombre,
-                PesoTipoEvaluacion = trabajo.TipoEvaluacion?.Peso,
-                NumeroTrabajo = trabajo.NumeroTrabajo,
-                TotalTrabajos = trabajo.TotalTrabajos,
-                PesoIndividual = trabajo.PesoIndividual
+                PesoTipoEvaluacion = trabajo.TipoEvaluacion?.Peso
             };
         }
 
-        /// <summary>
-        /// Recalcula los pesos individuales de todos los trabajos de un tipo de evaluación dividido
-        /// </summary>
-        private async Task RecalcularPesosTrabajosAsync(int idCurso, int idTipoEvaluacion, int totalTrabajos)
-        {
-            try
-            {
-                var tipoEvaluacion = await _context.TiposEvaluacion
-                    .FirstOrDefaultAsync(t => t.Id == idTipoEvaluacion && t.IdCurso == idCurso);
-
-                if (tipoEvaluacion == null)
-                {
-                    _logger.LogWarning($"No se encontró el tipo de evaluación {idTipoEvaluacion} para recalcular pesos");
-                    return;
-                }
-
-                var pesoIndividual = tipoEvaluacion.Peso / totalTrabajos;
-
-                var trabajos = await _context.Set<TrabajoEncargado>()
-                    .Where(t => t.IdCurso == idCurso
-                        && t.IdTipoEvaluacion == idTipoEvaluacion
-                        && t.NumeroTrabajo.HasValue
-                        && t.Activo)
-                    .ToListAsync();
-
-                foreach (var trabajo in trabajos)
-                {
-                    trabajo.PesoIndividual = pesoIndividual;
-                    trabajo.TotalTrabajos = totalTrabajos;
-                }
-
-                await _context.SaveChangesAsync();
-                _logger.LogInformation($"Pesos recalculados para {trabajos.Count} trabajos del tipo de evaluación {tipoEvaluacion.Nombre}. Peso individual: {pesoIndividual}%");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error al recalcular pesos de trabajos para tipo de evaluación {idTipoEvaluacion}");
-            }
-        }
 
         private EntregaDto MapToEntregaDto(TrabajoEntrega entrega)
         {

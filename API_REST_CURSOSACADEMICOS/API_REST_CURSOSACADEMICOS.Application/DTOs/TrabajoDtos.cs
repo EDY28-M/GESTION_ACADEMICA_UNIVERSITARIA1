@@ -25,16 +25,6 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
 
         public int? IdTipoEvaluacion { get; set; }
 
-        /// <summary>
-        /// Número del trabajo dentro de la serie (1, 2, 3, etc.). Solo se usa si se divide el tipo de evaluación.
-        /// </summary>
-        public int? NumeroTrabajo { get; set; }
-
-        /// <summary>
-        /// Total de trabajos en la serie para este tipo de evaluación. Solo se usa si se divide el tipo de evaluación.
-        /// </summary>
-        public int? TotalTrabajos { get; set; }
-
         public List<ArchivoDto>? Archivos { get; set; }
         public List<LinkDto>? Links { get; set; }
     }
@@ -54,16 +44,6 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public bool? Activo { get; set; }
 
         public int? IdTipoEvaluacion { get; set; }
-
-        /// <summary>
-        /// Número del trabajo dentro de la serie (1, 2, 3, etc.). Solo se usa si se divide el tipo de evaluación.
-        /// </summary>
-        public int? NumeroTrabajo { get; set; }
-
-        /// <summary>
-        /// Total de trabajos en la serie para este tipo de evaluación. Solo se usa si se divide el tipo de evaluación.
-        /// </summary>
-        public int? TotalTrabajos { get; set; }
 
         public List<ArchivoDto>? ArchivosNuevos { get; set; }
         public List<LinkDto>? LinksNuevos { get; set; }
@@ -97,11 +77,6 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public int? IdTipoEvaluacion { get; set; }
         public string? NombreTipoEvaluacion { get; set; }
         public decimal? PesoTipoEvaluacion { get; set; }
-        
-        // Información de división de evaluación
-        public int? NumeroTrabajo { get; set; }
-        public int? TotalTrabajos { get; set; }
-        public decimal? PesoIndividual { get; set; }
         
         // Información de la entrega del estudiante (si ya entregó)
         public decimal? Calificacion { get; set; }
@@ -213,6 +188,21 @@ namespace API_REST_CURSOSACADEMICOS.DTOs
         public decimal Calificacion { get; set; }
 
         public string? Observaciones { get; set; }
+    }
+
+    /// <summary>
+    /// DTO para trabajos pendientes en el dashboard del docente
+    /// </summary>
+    public class TrabajoPendienteDto
+    {
+        public int Id { get; set; }
+        public int IdCurso { get; set; }
+        public string? NombreCurso { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public DateTime FechaLimite { get; set; }
+        public int TotalEntregas { get; set; }
+        public int EntregasPendientesCalificar { get; set; }
+        public DateTime? FechaUltimaEntrega { get; set; }
     }
 }
 
